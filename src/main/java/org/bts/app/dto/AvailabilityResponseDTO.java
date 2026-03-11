@@ -1,19 +1,18 @@
 package org.bts.app.dto;
 
+import org.bts.app.model.Seat;
+
 import java.util.List;
 
 public class AvailabilityResponseDTO {
 
-    private List<String> availableSeats;
+    private List<Seat> availableSeats;
     private Number totalPrice;
-    private String currency;
 
-    public List<String> getAvailableSeats() { return availableSeats; }
-    public void setAvailableSeats(List<String> availableSeats) { this.availableSeats = availableSeats; }
+    public List<Seat> getAvailableSeats() { return availableSeats; }
+    public void setAvailableSeats(List<Seat> availableSeats) { this.availableSeats = availableSeats; }
 
     public Number getTotalPrice() { return totalPrice; }
     public void setTotalPrice(Number totalPrice) { this.totalPrice = totalPrice; }
 
-    public String getCurrency() { return currency; }
-    public void setCurrency(String currency) { this.currency = currency; }
 }
