@@ -2,20 +2,26 @@ package org.bts.app;
 
 import com.sun.net.httpserver.HttpServer;
 import org.bts.app.controller.TicketController;
+import org.bts.app.service.TicketService;
+import org.bts.app.service.impl.TicketServiceImpl;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
 public class Main {
     public static void main(String[] args) throws IOException {
-        HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
+        HttpServer server = HttpServer.create(new InetSocketAddress(8081), 0);
 
-        server.createContext("/api/v1/availability", new TicketController());
-        server.createContext("/api/v1/tickets/reserve", new TicketController());
+        TicketService ticketService = new TicketServiceImpl();
+
+        TicketController ticketController = new TicketController(ticketService);
+
+        server.createContext("/api/v1/tickets", ticketController);
+
 
         server.setExecutor(null);
         server.start();
 
-        System.out.println("server started on port 8080");
+        System.out.println("server started on port 8081");
     }
 }
