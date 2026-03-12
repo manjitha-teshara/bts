@@ -8,6 +8,6 @@ import org.bts.app.dto.BookingResponseDTO;
 public interface TicketService {
     AvailabilityResponseDTO checkAvailability(AvailabilityRequestDTO requestDTO);
 
-    BookingResponseDTO reserveTicket(BookingRequestDTO requestDTO);
+    BookingResponseDTO bookTicket(BookingRequestDTO requestDTO);
 
 }

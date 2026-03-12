@@ -66,7 +66,7 @@ public class TicketController implements HttpHandler {
 
         BookingRequestDTO requestDTO = JsonUtils.fromJson(body, BookingRequestDTO.class);
 
-        BookingResponseDTO responseDTO = service.reserveTicket(requestDTO);
+        BookingResponseDTO responseDTO = service.bookTicket(requestDTO);
 
         String responseJson = JsonUtils.toJson(responseDTO);
 
