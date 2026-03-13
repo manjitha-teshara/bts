@@ -3,7 +3,6 @@ package org.bts.app.controller;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import org.bts.app.Utils.JsonUtils;
-import org.bts.app.dto.AvailabilityRequestDTO;
 import org.bts.app.dto.AvailabilityResponseDTO;
 import org.bts.app.dto.BookingRequestDTO;
 import org.bts.app.dto.BookingResponseDTO;
@@ -13,6 +12,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 public class TicketController implements HttpHandler {
 
@@ -27,7 +28,7 @@ public class TicketController implements HttpHandler {
         String path = exchange.getRequestURI().getPath();
 
         try {
-            if(path.equals("/api/v1/tickets/availability") && method.equals("POST")) {
+            if(path.equals("/api/v1/tickets/availability") && method.equals("GET")) {
                 handleAvailability(exchange);
             } else if (path.equals("/api/v1/tickets/reserve") && method.equals("POST")) {
                 handleReservation(exchange);
@@ -42,12 +43,14 @@ public class TicketController implements HttpHandler {
 
 
     private void handleAvailability(HttpExchange exchange) throws IOException {
-        InputStream requestBody = exchange.getRequestBody();
-        String body = new String(requestBody.readAllBytes(), StandardCharsets.UTF_8);
+        Map<String, String> params = parseQueryParams(exchange.getRequestURI().getQuery());
 
-        AvailabilityRequestDTO requestDTO = JsonUtils.fromJson(body, AvailabilityRequestDTO.class);
+        String origin = params.get("origin");
+        String destination = params.get("destination");
+        int passengerCount = Integer.parseInt(params.get("passengerCount"));
+        String travelDate = params.get("travelDate");
 
-        AvailabilityResponseDTO responseDTO = service.checkAvailability(requestDTO);
+        AvailabilityResponseDTO responseDTO = service.checkAvailability(passengerCount, origin, destination, travelDate);
 
         String responseJson = JsonUtils.toJson(responseDTO);
 
@@ -76,5 +79,25 @@ public class TicketController implements HttpHandler {
         OutputStream os = exchange.getResponseBody();
         os.write(responseJson.getBytes());
         os.close();
+    }
+
+    private Map<String, String> parseQueryParams(String query) {
+
+        Map<String, String> params = new HashMap<>();
+
+        if (query == null || query.isEmpty()) {
+            return params;
+        }
+
+        String[] pairs = query.split("&");
+
+        for (String pair : pairs) {
+            String[] keyValue = pair.split("=");
+            if (keyValue.length == 2) {
+                params.put(keyValue[0], keyValue[1]);
+            }
+        }
+
+        return params;
     }
     }

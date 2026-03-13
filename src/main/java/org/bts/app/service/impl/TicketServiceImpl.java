@@ -1,6 +1,5 @@
 package org.bts.app.service.impl;
 
-import org.bts.app.dto.AvailabilityRequestDTO;
 import org.bts.app.dto.AvailabilityResponseDTO;
 import org.bts.app.dto.BookingRequestDTO;
 import org.bts.app.dto.BookingResponseDTO;
@@ -29,16 +28,16 @@ public class TicketServiceImpl implements TicketService {
     private static final Map<String, Map<String, Double>> priceWithRoute = priceWithRouteInitialization();
 
     @Override
-    public AvailabilityResponseDTO checkAvailability(AvailabilityRequestDTO requestDTO) {
+    public AvailabilityResponseDTO checkAvailability(int passengerCount, String origin, String destination, String travelDate) {
         AvailabilityResponseDTO response = new AvailabilityResponseDTO();
-        List<Seat> seats = getAvailableSeats(requestDTO.getPassengerCount(), requestDTO.getOrigin(), requestDTO.getDestination());
+        List<Seat> seats = getAvailableSeats(passengerCount, origin, destination);
         if(seats.isEmpty()) {
             response.setAvailableSeats(Collections.emptyList());
             response.setTotalPrice(0.0);
         }
         else {
             response.setAvailableSeats(seats);
-            response.setTotalPrice(getTotalPrice(requestDTO.getPassengerCount(), requestDTO.getOrigin(), requestDTO.getDestination()));
+            response.setTotalPrice(getTotalPrice(passengerCount, origin, destination));
         }
         return response;
     }
