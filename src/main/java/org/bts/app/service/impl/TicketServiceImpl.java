@@ -28,23 +28,21 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     public AvailabilityResponseDTO checkAvailability(int passengerCount, String origin, String destination, String travelDate) {
-        AvailabilityResponseDTO response = new AvailabilityResponseDTO();
+
         List<Seat> seats = getAvailableSeats(passengerCount, origin, destination);
+        Double totalPrice = 0.0;
         if(seats.isEmpty()) {
-            response.setAvailableSeats(Collections.emptyList());
-            response.setTotalPrice(0.0);
+            seats = Collections.emptyList();
         }
         else {
-            response.setAvailableSeats(seats);
-            response.setTotalPrice(getTotalPrice(passengerCount, origin, destination));
+            totalPrice = getTotalPrice(passengerCount, origin, destination);
         }
-        return response;
+        return new AvailabilityResponseDTO(seats, totalPrice);
     }
 
     @Override
     public BookingResponseDTO bookTicket(BookingRequestDTO requestDTO) {
 
-        BookingResponseDTO response = new BookingResponseDTO();
 
         String bookedId = "TKT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
@@ -55,30 +53,19 @@ public class TicketServiceImpl implements TicketService {
                 bookedId
         );
 
-        if (seats.isEmpty()) {
-
-            response.setAssignedSeats(Collections.emptyList());
-            response.setTotalPrice(0.0);
-
-            return response;
-        }
-
         Double totalPrice = getTotalPrice(requestDTO.getPassengerCount(),
                 requestDTO.getOrigin(), requestDTO.getDestination()
         );
 
-        response.setAssignedSeats(seats);
-        response.setTotalPrice(totalPrice);
-        response.setBookedId(bookedId);
+        TripDetailsDTO tripDetails = new TripDetailsDTO(requestDTO.getOrigin(), requestDTO.getDestination(), requestDTO.getTravelDate());
 
-        TripDetailsDTO tripDetails = new TripDetailsDTO();
-        tripDetails.setOrigin(requestDTO.getOrigin());
-        tripDetails.setDestination(requestDTO.getDestination());
-        tripDetails.setTravelDate(requestDTO.getTravelDate());
+        if (seats.isEmpty()) {
+            seats = Collections.emptyList();
 
-        response.setTripDetails(tripDetails);
+            return new BookingResponseDTO(bookedId, tripDetails, seats, totalPrice);
+        }
 
-        return response;
+        return new BookingResponseDTO(bookedId, tripDetails, seats, totalPrice);
     }
 
     private List<Seat> getAvailableSeats(int passengerCount, String origin, String destination) {
@@ -142,7 +129,7 @@ public class TicketServiceImpl implements TicketService {
 
                 if (available) {
 
-                    // Reserve all segments
+                    // reserve all segments
                     for (Integer index : segmentIndexes) {
                         seat.getSegmentStatus()[index] = RESERVED;
                         seat.getReservationIds()[index] = bookedId;
@@ -179,7 +166,7 @@ public class TicketServiceImpl implements TicketService {
 
     private Double getTotalPrice(int passengerCount, String origin, String destination) {
 
-        Double routePrice = 0.0;
+        Double routePrice;
 
         if (priceWithRoute.containsKey(origin) && priceWithRoute.get(origin).containsKey(destination)) {
             routePrice = priceWithRoute.get(origin).get(destination);
