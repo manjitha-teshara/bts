@@ -9,18 +9,48 @@ public class BookingRequestDTO {
     private LocalDate travelDate;
     private boolean priceConfirmation;
 
-    public String getOrigin() { return origin; }
-    public void setOrigin(String origin) { this.origin = origin; }
+    public String getOrigin() {
+        return origin;
+    }
 
-    public String getDestination() { return destination; }
-    public void setDestination(String destination) { this.destination = destination; }
+    public BookingRequestDTO setOrigin(String origin) {
+        this.origin = origin;
+        return this;
+    }
 
-    public int getPassengerCount() { return passengerCount; }
-    public void setPassengerCount(int passengerCount) { this.passengerCount = passengerCount; }
+    public String getDestination() {
+        return destination;
+    }
 
-    public LocalDate getTravelDate() { return travelDate; }
-    public void setTravelDate(LocalDate travelDate) { this.travelDate = travelDate; }
+    public BookingRequestDTO setDestination(String destination) {
+        this.destination = destination;
+        return this;
+    }
 
-    public boolean isPriceConfirmation() { return priceConfirmation; }
-    public void setPriceConfirmation(boolean priceConfirmation) { this.priceConfirmation = priceConfirmation; }
+    public int getPassengerCount() {
+        return passengerCount;
+    }
+
+    public BookingRequestDTO setPassengerCount(int passengerCount) {
+        this.passengerCount = passengerCount;
+        return this;
+    }
+
+    public LocalDate getTravelDate() {
+        return travelDate;
+    }
+
+    public BookingRequestDTO setTravelDate(LocalDate travelDate) {
+        this.travelDate = travelDate;
+        return this;
+    }
+
+    public boolean isPriceConfirmation() {
+        return priceConfirmation;
+    }
+
+    public BookingRequestDTO setPriceConfirmation(boolean priceConfirmation) {
+        this.priceConfirmation = priceConfirmation;
+        return this;
+    }
 }

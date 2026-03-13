@@ -7,17 +7,41 @@ public class AvailabilityRequestDTO {
     private String origin;
     private String destination;
     private int passengerCount;
-    private LocalDate travelDate;
+    private LocalDate travelDate;// make it optional
 
-    public String getOrigin() { return origin; }
-    public void setOrigin(String origin) { this.origin = origin; }
+    public String getOrigin() {
+        return origin;
+    }
 
-    public String getDestination() { return destination; }
-    public void setDestination(String destination) { this.destination = destination; }
+    public AvailabilityRequestDTO setOrigin(String origin) {
+        this.origin = origin;
+        return this;
+    }
 
-    public int getPassengerCount() { return passengerCount; }
-    public void setPassengerCount(int passengerCount) { this.passengerCount = passengerCount; }
+    public String getDestination() {
+        return destination;
+    }
 
-    public LocalDate getTravelDate() { return travelDate; }
-    public void setTravelDate(LocalDate travelDate) { this.travelDate = travelDate; }
+    public AvailabilityRequestDTO setDestination(String destination) {
+        this.destination = destination;
+        return this;
+    }
+
+    public int getPassengerCount() {
+        return passengerCount;
+    }
+
+    public AvailabilityRequestDTO setPassengerCount(int passengerCount) {
+        this.passengerCount = passengerCount;
+        return this;
+    }
+
+    public LocalDate getTravelDate() {
+        return travelDate;
+    }
+
+    public AvailabilityRequestDTO setTravelDate(LocalDate travelDate) {
+        this.travelDate = travelDate;
+        return this;
+    }
 }

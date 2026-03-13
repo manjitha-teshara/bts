@@ -10,6 +10,7 @@ import org.bts.app.model.SeatStatus;
 import org.bts.app.service.TicketService;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,66 +24,162 @@ public class TicketServiceImpl implements TicketService {
 
     private static final ConcurrentHashMap<String, Seat> SEATS = seatsInitialization();
 
-    private static final Map<String, Integer> segmentStatusIndexes = segmentStatusIndexInitialization();
+    private static final Map<String, Map<String, Integer[]>> segmentStatusIndexes = segmentStatusIndexInitialization();
 
     private static final Map<String, Map<String, Double>> priceWithRoute = priceWithRouteInitialization();
 
     @Override
     public AvailabilityResponseDTO checkAvailability(AvailabilityRequestDTO requestDTO) {
         AvailabilityResponseDTO response = new AvailabilityResponseDTO();
-        String reserveId = "RES-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        response.setAvailableSeats(getAvailableSeats(requestDTO.getPassengerCount(), requestDTO.getOrigin(), requestDTO.getDestination(), reserveId));
-        response.setTotalPrice(getTotalPrice(requestDTO.getPassengerCount(), requestDTO.getOrigin(), requestDTO.getDestination()));
+        List<Seat> seats = getAvailableSeats(requestDTO.getPassengerCount(), requestDTO.getOrigin(), requestDTO.getDestination());
+        if(seats.isEmpty()) {
+            response.setAvailableSeats(Collections.emptyList());
+            response.setTotalPrice(0.0);
+        }
+        else {
+            response.setAvailableSeats(seats);
+            response.setTotalPrice(getTotalPrice(requestDTO.getPassengerCount(), requestDTO.getOrigin(), requestDTO.getDestination()));
+        }
         return response;
     }
 
     @Override
     public BookingResponseDTO bookTicket(BookingRequestDTO requestDTO) {
+
         BookingResponseDTO response = new BookingResponseDTO();
+
         String bookedId = "TKT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        response.setTicketNumber(bookedId);
-        
+
+        List<Seat> seats = reserveAvailableSeats(
+                requestDTO.getPassengerCount(),
+                requestDTO.getOrigin(),
+                requestDTO.getDestination(),
+                bookedId
+        );
+
+        if (seats.isEmpty()) {
+
+            response.setAssignedSeats(Collections.emptyList());
+            response.setTotalPrice(0.0);
+
+            return response;
+        }
+
+        Double totalPrice = getTotalPrice(requestDTO.getPassengerCount(),
+                requestDTO.getOrigin(), requestDTO.getDestination()
+        );
+
+        response.setAssignedSeats(seats);
+        response.setTotalPrice(totalPrice);
+        response.setBookedId(bookedId);
+
         TripDetailsDTO tripDetails = new TripDetailsDTO();
         tripDetails.setOrigin(requestDTO.getOrigin());
         tripDetails.setDestination(requestDTO.getDestination());
         tripDetails.setTravelDate(requestDTO.getTravelDate());
-        
+
         response.setTripDetails(tripDetails);
-        response.setAssignedSeats(getAvailableSeats(requestDTO.getPassengerCount(), requestDTO.getOrigin(), requestDTO.getDestination(), bookedId));
-        response.setTotalPrice(getTotalPrice(requestDTO.getPassengerCount(), requestDTO.getOrigin(), requestDTO.getDestination()));
+
         return response;
     }
 
-    private List<Seat> getAvailableSeats(int passengerCount, String origin, String destination, String reserveId) {
+    private List<Seat> getAvailableSeats(int passengerCount, String origin, String destination) {
+
         List<Seat> seats = new ArrayList<>();
-        String segment = origin + "-" + destination;
         int passengerAdded = 0;
-        Integer segmentIndex = segmentStatusIndexes.get(segment);
-        List<Seat> reservedSeats = new ArrayList<>();
+
+        Integer[] segmentIndexes = segmentStatusIndexes.get(origin).get(destination);
 
         for (Seat seat : SEATS.values()) {
-            if(passengerCount>= passengerAdded) {
-                synchronized (seat) {
-                    if (seat.getSegmentStatus()[segmentIndex] == AVAILABLE) {
 
-                        seat.getSegmentStatus()[segmentIndex] = RESERVED;
-                        seat.getReservationIds()[segmentIndex] = reserveId;
-
-                        reservedSeats.add(seat);
-                        passengerAdded++;
-
-                    }
-                }
-            } else {
+            if (passengerAdded >= passengerCount) {
                 return seats;
             }
-        }
 
+            synchronized (seat) {
+
+                boolean available = true;
+
+                for (Integer index : segmentIndexes) {
+                    if (seat.getSegmentStatus()[index] != AVAILABLE) {
+                        available = false;
+                        break;
+                    }
+                }
+
+                if (available) {
+                    seats.add(seat);
+                    passengerAdded++;
+                }
+            }
+        }
 
         return seats;
     }
 
-    private Number getTotalPrice(int passengerCount, String origin, String destination) {
+    private List<Seat> reserveAvailableSeats(int passengerCount, String origin,
+                                             String destination, String bookedId) {
+
+        List<Seat> seats = new ArrayList<>();
+        int passengerAdded = 0;
+
+        Integer[] segmentIndexes = segmentStatusIndexes.get(origin).get(destination);
+
+        for (Seat seat : SEATS.values()) {
+
+            if (passengerAdded >= passengerCount) {
+                break;
+            }
+
+            synchronized (seat) {
+
+                boolean available = true;
+
+                for (Integer index : segmentIndexes) {
+                    if (seat.getSegmentStatus()[index] != AVAILABLE) {
+                        available = false;
+                        break;
+                    }
+                }
+
+                if (available) {
+
+                    // Reserve all segments
+                    for (Integer index : segmentIndexes) {
+                        seat.getSegmentStatus()[index] = RESERVED;
+                        seat.getReservationIds()[index] = bookedId;
+                    }
+
+                    seats.add(seat);
+                    passengerAdded++;
+                }
+            }
+        }
+
+        if (passengerAdded < passengerCount) {
+            rollbackReservation(seats, segmentIndexes);
+            return Collections.emptyList();
+        }
+
+        return seats;
+    }
+
+    private void rollbackReservation(List<Seat> seats, Integer[] segmentIndexes) {
+
+        for (Seat seat : seats) {
+
+            synchronized (seat) {
+
+                for (Integer index : segmentIndexes) {
+                    seat.getSegmentStatus()[index] = AVAILABLE;
+                    seat.getReservationIds()[index] = null;
+                }
+
+            }
+        }
+    }
+
+    private Double getTotalPrice(int passengerCount, String origin, String destination) {
 
         Double routePrice = 0.0;
 
@@ -99,23 +196,35 @@ public class TicketServiceImpl implements TicketService {
     }
 
 
-    private int getSegmentStatusIndexInitialization(String origin, String destination) {
-        String seatId = origin +
-                "-" +
-                destination;
-        return segmentStatusIndexes.get(seatId);
-    }
+    private static Map<String, Map<String, Integer[]>> segmentStatusIndexInitialization() {
 
-    private static Map<String, Integer> segmentStatusIndexInitialization() {
-        Map<String, Integer> segmentIndexMap = new HashMap<>();
-        segmentIndexMap.put("A-B", 0);
-        segmentIndexMap.put("B-C", 1);
-        segmentIndexMap.put("C-D", 2);
+        Map<String, Map<String, Integer[]>> segmentIndex = new HashMap<>();
 
-        segmentIndexMap.put("D-C", 3);
-        segmentIndexMap.put("C-B", 4);
-        segmentIndexMap.put("B-A", 5);
-        return segmentIndexMap;
+        Map<String, Integer[]> fromA = new HashMap<>();
+        fromA.put("B", new Integer[]{0});
+        fromA.put("C", new Integer[]{0, 1});
+        fromA.put("D", new Integer[]{0, 1, 2});
+        segmentIndex.put("A", fromA);
+
+        Map<String, Integer[]> fromB = new HashMap<>();
+        fromB.put("C", new Integer[]{1});
+        fromB.put("D", new Integer[]{1, 2});
+        fromB.put("A", new Integer[]{5});
+        segmentIndex.put("B", fromB);
+
+        Map<String, Integer[]> fromC = new HashMap<>();
+        fromC.put("D", new Integer[]{2});
+        fromC.put("B", new Integer[]{4});
+        fromC.put("A", new Integer[]{4, 5});
+        segmentIndex.put("C", fromC);
+
+        Map<String, Integer[]> fromD = new HashMap<>();
+        fromD.put("C", new Integer[]{3});
+        fromD.put("B", new Integer[]{3, 4});
+        fromD.put("A", new Integer[]{3, 4, 5});
+        segmentIndex.put("D", fromD);
+
+        return segmentIndex;
     }
 
     private static  Map<String, Map<String, Double>> priceWithRouteInitialization() {
@@ -143,7 +252,7 @@ public class TicketServiceImpl implements TicketService {
         ConcurrentHashMap<String, Seat> seats = new ConcurrentHashMap<>();
 
         for(char row='A'; row<='J'; row++){
-            for(int i=1;i<=5;i++){
+            for(int i=1;i<5;i++){
                 String seatId = row + "" + i;
 
                 Seat seat = new Seat();

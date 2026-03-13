@@ -5,21 +5,44 @@ import org.bts.app.model.Seat;
 import java.util.List;
 
 public class BookingResponseDTO {
-    private String ticketNumber;
+    private String bookedId;
     private TripDetailsDTO tripDetails;
     private List<Seat> assignedSeats;
-    private Number totalPrice;
+    private Double totalPrice;
 
-    public String getTicketNumber() { return ticketNumber; }
-    public void setTicketNumber(String ticketNumber) { this.ticketNumber = ticketNumber; }
+    public String getBookedId() {
+        return bookedId;
+    }
 
-    public TripDetailsDTO getTripDetails() { return tripDetails; }
-    public void setTripDetails(TripDetailsDTO tripDetails) { this.tripDetails = tripDetails; }
+    public BookingResponseDTO setBookedId(String bookedId) {
+        this.bookedId = bookedId;
+        return this;
+    }
 
-    public List<Seat> getAssignedSeats() { return assignedSeats; }
-    public void setAssignedSeats(List<Seat> assignedSeats) { this.assignedSeats = assignedSeats; }
+    public TripDetailsDTO getTripDetails() {
+        return tripDetails;
+    }
 
-    public Number getTotalPrice() { return totalPrice; }
-    public void setTotalPrice(Number totalPrice) { this.totalPrice = totalPrice; }
+    public BookingResponseDTO setTripDetails(TripDetailsDTO tripDetails) {
+        this.tripDetails = tripDetails;
+        return this;
+    }
 
+    public List<Seat> getAssignedSeats() {
+        return assignedSeats;
+    }
+
+    public BookingResponseDTO setAssignedSeats(List<Seat> assignedSeats) {
+        this.assignedSeats = assignedSeats;
+        return this;
+    }
+
+    public Double getTotalPrice() {
+        return totalPrice;
+    }
+
+    public BookingResponseDTO setTotalPrice(Double totalPrice) {
+        this.totalPrice = totalPrice;
+        return this;
+    }
 }

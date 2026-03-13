@@ -13,7 +13,6 @@ public class Seat {
 
     private String[] reservationIds = new String[6];
 
-    private String[] bookingIds = new String[6];
 
     public String getSeatId() {
         return seatId;
@@ -60,12 +59,4 @@ public class Seat {
         return this;
     }
 
-    public String[] getBookingIds() {
-        return bookingIds;
-    }
-
-    public Seat setBookingIds(String[] bookingIds) {
-        this.bookingIds = bookingIds;
-        return this;
-    }
 }
