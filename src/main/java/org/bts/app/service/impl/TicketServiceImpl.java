@@ -8,6 +8,7 @@ import org.bts.app.exception.InvalidRequestException;
 import org.bts.app.exception.RouteNotFoundException;
 import org.bts.app.exception.SeatUnavailableException;
 import org.bts.app.model.Seat;
+import org.bts.app.model.SeatStatus;
 import org.bts.app.service.TicketService;
 import org.bts.app.storage.Storage;
 
@@ -32,8 +33,6 @@ public class TicketServiceImpl implements TicketService {
     private static final Logger LOGGER = Logger.getLogger(TicketServiceImpl.class.getName());
 
     private static final ConcurrentHashMap<String, Seat> SEATS = Storage.seatsInitialization();
-
-    private static final Map<String, Map<String, Integer[]>> segmentStatusIndexes = Storage.segmentStatusIndexInitialization();
 
     private static final Map<String, Map<String, Double>> priceWithRoute = Storage.priceWithRouteInitialization();
 
@@ -118,7 +117,8 @@ public class TicketServiceImpl implements TicketService {
         if (destination == null || destination.trim().isEmpty()) {
             throw new InvalidRequestException("Destination is required");
         }
-        if (!segmentStatusIndexes.containsKey(origin) || !segmentStatusIndexes.get(origin).containsKey(destination)) {
+        List<String> segments = Storage.generateSegments(origin, destination);
+        if (segments.isEmpty()) {
             throw new RouteNotFoundException("Invalid route: " + origin + " to " + destination);
         }
     }
@@ -127,15 +127,20 @@ public class TicketServiceImpl implements TicketService {
 
         List<Seat> seats = new ArrayList<>();
         int passengerAdded = 0;
-
-        Integer[] segmentIndexes = segmentStatusIndexes.get(origin).get(destination);
+        List<String> segments = Storage.generateSegments(origin, destination);
 
         for (Seat seat : SEATS.values()) {
             if (passengerAdded >= passengerCount) {
                 return seats;
             }
-
-            if (seat.isAvailableForSegments(segmentIndexes)) {
+            boolean seatAvailableForTrip = true;
+            for(String segment: segments) {
+                if (!seat.isAvailableForSegment(segment)) {
+                    seatAvailableForTrip = false;
+                    break;
+                }
+            }
+            if (seatAvailableForTrip) {
                 seats.add(seat);
                 passengerAdded++;
             }
@@ -146,21 +151,31 @@ public class TicketServiceImpl implements TicketService {
     }
 
     private List<Seat> reserveAvailableSeats(int passengerCount, String origin,
-            String destination, String bookedId) {
+            String destination, String reservationId) {
 
         List<Seat> reservedSeats = new ArrayList<>();
         int passengerAdded = 0;
-
-        Integer[] segmentIndexes = segmentStatusIndexes.get(origin).get(destination);
+        List<String> segments = Storage.generateSegments(origin,destination);
 
         for (Seat seat : SEATS.values()) {
             if (passengerAdded >= passengerCount) {
                 break;
             }
-
-            // reserveSegments is atomic thread safe at the Seat level
-            if (seat.reserveSegments(segmentIndexes, bookedId)) {
+            boolean seatAvailableForTrip = true;
+            for(String segment : segments) {
+                // reserveSegments is atomic thread safe at the Seat level
+                if (!seat.getSegmentStatus(segment).equals(SeatStatus.AVAILABLE) || !seat.getReservationIds(segment).equals("")) {
+                   seatAvailableForTrip = false;
+                   break;
+                }
+            }
+            if(seatAvailableForTrip) {
                 reservedSeats.add(seat);
+                for(String segment : segments) {
+
+                    seat.setSegmentStatus(segment, SeatStatus.RESERVED);
+                    seat.setReservationId(segment, reservationId);
+                }
                 passengerAdded++;
             }
         }
@@ -168,7 +183,9 @@ public class TicketServiceImpl implements TicketService {
         if (passengerAdded < passengerCount) {
             // rollback if we failed to acquire all needed seats
             for (Seat seat : reservedSeats) {
-                seat.freeSegments(segmentIndexes);
+                for(String segment : segments) {
+                    seat.freeSegment(segment);
+                }
             }
             return Collections.emptyList();
         }

@@ -1,6 +1,10 @@
 package org.bts.app.model;
 
-import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.bts.app.model.SeatStatus.AVAILABLE;
+import static org.bts.app.model.SeatStatus.RESERVED;
 
 /**
  * Represents a single seat on a bus.
@@ -13,14 +17,14 @@ public class Seat {
     private String row;    // e.g., A, B, C...
     private int column;    // e.g., 1, 2, 3...
 
-    private final SeatStatus[] segmentStatus = new SeatStatus[6];
-    private final String[] reservationIds = new String[6];
+//    private final SeatStatus[] segmentStatus = new SeatStatus[6];
+//    private final String[] reservationIds = new String[6];
+    Map<String, SeatSegment> seatSegments = new HashMap<>();
 
     /**
      * constructs a seat and initializes all segments to AVAILABLE.
      */
     public Seat() {
-        Arrays.fill(segmentStatus, SeatStatus.AVAILABLE);
     }
 
     public String getSeatId() {
@@ -50,55 +54,98 @@ public class Seat {
         return this;
     }
 
+    public Map<String, SeatSegment> getSeatSegments() {
+        return seatSegments;
+    }
+
+    public Seat setSeatSegments(Map<String, SeatSegment> seatSegments) {
+        this.seatSegments = seatSegments;
+        return this;
+    }
+
     /**
      * Retrieves a copy of the segment statuses to prevent external mutation.
      * @return Array of SeatStatuses for each segment.
      */
-    public synchronized SeatStatus[] getSegmentStatus() {
-        return Arrays.copyOf(segmentStatus, segmentStatus.length);
+    public synchronized SeatStatus getSegmentStatus(String segment) {
+        return seatSegments.get(segment).getStatus();
+    }
+
+    /**
+     * Updates the seat status for the given segment.
+     *
+     * @param origin Starting point of the segment.
+     * @param destination Ending point of the segment.
+     * @param status New seat status to set.
+     */
+    public synchronized void setSegmentStatus(String segment, SeatStatus status) {
+
+        SeatSegment seatSegment = seatSegments.get(segment);
+        if (seatSegment != null) {
+            seatSegment.setStatus(status);
+        }
     }
 
     /**
      * Retrieves a copy of the reservation IDs to prevent external mutation.
      * @return Array of reservation IDs for each segment.
      */
-    public synchronized String[] getReservationIds() {
-        return Arrays.copyOf(reservationIds, reservationIds.length);
+    public synchronized String getReservationIds(String segment) {
+        return seatSegments.get(segment).getReservationId();
     }
 
     /**
-     * Checks if the seat is available for the given segment indexes securely.
+     * Updates the reservation ID for the given segment.
      *
-     * @param segmentIndexes The indexes of the route segments required.
-     * @return true if all required segments are AVAILABLE.
+     * @param origin Starting point of the segment.
+     * @param destination Ending point of the segment.
+     * @param reservationId Reservation identifier.
      */
-    public synchronized boolean isAvailableForSegments(Integer[] segmentIndexes) {
-        for (Integer index : segmentIndexes) {
-            if (segmentStatus[index] != SeatStatus.AVAILABLE) {
-                return false;
-            }
+    public synchronized void setReservationId(String segment, String reservationId) {
+        SeatSegment seatSegment = seatSegments.get(segment);
+        if (seatSegment != null) {
+            seatSegment.setReservationId(reservationId);
         }
-        return true;
     }
 
     /**
-     * Attempts to reserve the specified segments for a booking.
-     * This operation is thread-safe and atomic at the seat level.
+     * Checks the seat is available for the given segment.
      *
-     * @param segmentIndexes The segments to reserve.
-     * @param bookingId The ID of the reservation.
-     * @return true if successful, false if the seat was not available.
+     * @param segment The route segment identifier (e.g."A-B").
+     * @return true if the segment status is AVAILABLE and not reserved.
      */
-    public synchronized boolean reserveSegments(Integer[] segmentIndexes, String bookingId) {
-        if (!isAvailableForSegments(segmentIndexes)) {
+    public synchronized boolean isAvailableForSegment(String segment) {
+        SeatSegment status = seatSegments.get(segment);
+
+        return status != null
+                && status.getStatus() == AVAILABLE
+                && (status.getReservationId() == null || status.getReservationId().isEmpty());
+    }
+
+    /**
+     * Attempts to reserve a seat for the given route segment.
+     * The operation is synchronized to ensure thread safety at the seat level.
+     *
+     * @param origin Starting location of the trip.
+     * @param destination Destination location of the trip.
+     * @param bookingId Unique reservation identifier.
+     * @return true if the reservation was successful, otherwise false.
+     */
+    public synchronized boolean reserveSegment(String segment, String bookingId) {
+
+        if (!isAvailableForSegment(segment)) {
             return false;
         }
 
-        for (Integer index : segmentIndexes) {
-            segmentStatus[index] = SeatStatus.RESERVED;
-            reservationIds[index] = bookingId;
+        SeatSegment status = seatSegments.get(segment);
+
+        if (status != null && status.getStatus() == AVAILABLE) {
+            status.setStatus(RESERVED);
+            status.setReservationId(bookingId);
+            return true;
         }
-        return true;
+
+        return false;
     }
 
     /**
@@ -107,18 +154,20 @@ public class Seat {
      *
      * @param segmentIndexes The segments to free.
      */
-    public synchronized void freeSegments(Integer[] segmentIndexes) {
-        for (Integer index : segmentIndexes) {
-            segmentStatus[index] = SeatStatus.AVAILABLE;
-            reservationIds[index] = null;
-        }
+    public synchronized void freeSegment(String segment) {
+        setReservationId(segment,"");
+        setSegmentStatus(segment, AVAILABLE);
     }
 
     /**
      * Resets the seat to its initial state (all segments AVAILABLE, no reservations).
      */
     public synchronized void reset() {
-        Arrays.fill(segmentStatus, SeatStatus.AVAILABLE);
-        Arrays.fill(reservationIds, null);
+        seatSegments.put("A-B", new SeatSegment(AVAILABLE, ""));
+        seatSegments.put("B-C", new SeatSegment(AVAILABLE, ""));
+        seatSegments.put("C-D", new SeatSegment(AVAILABLE, ""));
+        seatSegments.put("D-C", new SeatSegment(AVAILABLE, ""));
+        seatSegments.put("C-B", new SeatSegment(AVAILABLE, ""));
+        seatSegments.put("B-A", new SeatSegment(AVAILABLE, ""));
     }
 }
