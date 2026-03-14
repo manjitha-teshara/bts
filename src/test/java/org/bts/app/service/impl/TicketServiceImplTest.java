@@ -34,11 +34,9 @@ class TicketServiceImplTest {
     @Test
     @DisplayName("Should successfully check availability for a valid route")
     void shouldCheckAvailabilitySuccessfully() {
-        // Act
         // Route A to C price is 100.0 per seat
         AvailabilityResponseDTO response = ticketService.checkAvailability(2, "A", "C");
 
-        // Assert
         assertNotNull(response, "Response should not be null");
         assertFalse(response.availableSeats().isEmpty(), "Seats should be available for a fresh system");
         assertEquals(2, response.availableSeats().size(), "Should return exactly the requested number of seats");
@@ -48,7 +46,6 @@ class TicketServiceImplTest {
     @Test
     @DisplayName("Should throw RouteNotFoundException for an invalid route")
     void shouldThrowExceptionForInvalidRoute() {
-        // Act & Assert
         RouteNotFoundException exception = assertThrows(
                 RouteNotFoundException.class,
                 () -> ticketService.checkAvailability(1, "A", "X")
@@ -60,7 +57,6 @@ class TicketServiceImplTest {
     @Test
     @DisplayName("Should throw InvalidRequestException for invalid passenger count")
     void shouldThrowExceptionForInvalidPassengerCount() {
-        // Act & Assert
         assertThrows(
                 InvalidRequestException.class,
                 () -> ticketService.checkAvailability(0, "A", "C"),
@@ -77,7 +73,6 @@ class TicketServiceImplTest {
     @Test
     @DisplayName("Should throw SeatUnavailableException when passenger count exceeds bus capacity")
     void shouldThrowExceptionWhenExceedingCapacity() {
-         // Act & Assert
          assertThrows(
                  SeatUnavailableException.class,
                  () -> ticketService.checkAvailability(41, "A", "C"), // Bus has 40 seats
@@ -88,14 +83,11 @@ class TicketServiceImplTest {
     @Test
     @DisplayName("Should successfully reserve tickets and return required details")
     void shouldReserveTicketSuccessfully() {
-        // Arrange
         // Route B to C price is 50.0 per seat
         ReserveRequestDTO request = new ReserveRequestDTO("B", "C", 3, true);
 
-        // Act
         ReserveResponseDTO response = ticketService.reserveTicket(request);
 
-        // Assert
         assertNotNull(response.bookedId(), "Booking ID should be generated");
         assertTrue(response.bookedId().startsWith("TKT-"), "Booking ID should start with TKT-");
         assertEquals(3, response.assignedSeats().size(), "Should assign 3 seats");
@@ -107,11 +99,9 @@ class TicketServiceImplTest {
     @Test
     @DisplayName("Should throw InvalidRequestException if required reservation fields are missing")
     void shouldThrowExceptionForMissingReservationFields() {
-        // Arrange
         ReserveRequestDTO nullOriginRequest = new ReserveRequestDTO(null, "C", 1, true);
         ReserveRequestDTO emptyDestinationRequest = new ReserveRequestDTO("A", "  ", 1, true);
 
-        // Act & Assert
         assertThrows(InvalidRequestException.class, () -> ticketService.reserveTicket(nullOriginRequest));
         assertThrows(InvalidRequestException.class, () -> ticketService.reserveTicket(emptyDestinationRequest));
     }
@@ -119,10 +109,8 @@ class TicketServiceImplTest {
     @Test
     @DisplayName("Should throw InvalidRequestException if price is not confirmed")
     void shouldThrowExceptionIfPriceNotConfirmed() {
-        // Arrange
         ReserveRequestDTO unconfirmedRequest = new ReserveRequestDTO("A", "C", 1, false);
 
-        // Act & Assert
         InvalidRequestException exception = assertThrows(InvalidRequestException.class, () -> ticketService.reserveTicket(unconfirmedRequest));
         assertEquals("Price confirmation is required to reserve seats", exception.getMessage());
     }
@@ -130,14 +118,11 @@ class TicketServiceImplTest {
     @Test
     @DisplayName("Should successfully reset the ticketing system")
     void shouldResetSystemSuccessfully() {
-        // Arrange
         ReserveRequestDTO request = new ReserveRequestDTO("A", "C", 2, true);
         ticketService.reserveTicket(request); // Book 2 seats
 
-        // Act
         ticketService.resetSystem(); // Reset all
 
-        // Assert
         // request availability for 40 to check if all seats are freed
         AvailabilityResponseDTO response = ticketService.checkAvailability(40, "A", "C");
         assertEquals(40, response.availableSeats().size(), "All 40 seats should be available after reset");

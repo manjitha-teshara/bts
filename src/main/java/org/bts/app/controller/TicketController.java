@@ -68,7 +68,7 @@ public class TicketController implements HttpHandler {
      * Expects query parameters: origin, destination, passengerCount.
      *
      * @param exchange The HTTP exchange context.
-     * @throws IOException If an I/O error occurs.
+     * @throws IOException when an I/O error occurs.
      */
     private void handleAvailability(HttpExchange exchange) throws IOException {
         Map<String, String> params = parseQueryParams(exchange.getRequestURI().getQuery());
