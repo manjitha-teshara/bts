@@ -45,9 +45,10 @@ public class TicketServiceImpl implements TicketService {
      * @param passengerCount The number of requested seats.
      * @param origin         The starting node of the journey.
      * @param destination    The destination node of the journey.
-     * @return AvailabilityResponseDTO containing available seats (or empty list if unavailable) and total price.
+     * @return AvailabilityResponseDTO containing available seats (or empty list if
+     *         unavailable) and total price.
      * @throws InvalidRequestException if any input parameter is invalid.
-     * @throws RouteNotFoundException if the specified route does not exist.
+     * @throws RouteNotFoundException  if the specified route does not exist.
      */
     @Override
     public AvailabilityResponseDTO checkAvailability(int passengerCount, String origin, String destination) {
@@ -65,19 +66,26 @@ public class TicketServiceImpl implements TicketService {
     }
 
     /**
-     * Books a ticket by attempting to reserve the necessary segments across the required number of seats.
-     * If enough seats cannot be successfully reserved, all mutually reserved seats for this transaction
+     * Books a ticket by attempting to reserve the necessary segments across the
+     * required number of seats.
+     * If enough seats cannot be successfully reserved, all mutually reserved seats
+     * for this transaction
      * are rolled back to ensure data consistency.
      *
      * @param requestDTO The booking constraints.
-     * @return BookingResponseDTO containing the Booking ID and finalized trip details.
-     * @throws InvalidRequestException if the request parameters are invalid.
-     * @throws RouteNotFoundException if the requested route is not available.
+     * @return BookingResponseDTO containing the Booking ID and finalized trip
+     *         details.
+     * @throws InvalidRequestException  if the request parameters are invalid.
+     * @throws RouteNotFoundException   if the requested route is not available.
      * @throws SeatUnavailableException if not enough seats could be acquired.
      */
     @Override
     public ReserveResponseDTO reserveTicket(ReserveRequestDTO requestDTO) {
         validateInputs(requestDTO.passengerCount(), requestDTO.origin(), requestDTO.destination());
+
+        if (!requestDTO.priceConfirmation()) {
+            throw new InvalidRequestException("Price confirmation is required to reserve seats");
+        }
 
         String bookedId = "TKT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
@@ -85,8 +93,7 @@ public class TicketServiceImpl implements TicketService {
                 requestDTO.passengerCount(),
                 requestDTO.origin(),
                 requestDTO.destination(),
-                bookedId
-        );
+                bookedId);
 
         if (seats.isEmpty()) {
             LOGGER.warning(String.format("Booking failed for %s from %s to %s due to insufficient seats", bookedId, requestDTO.origin(), requestDTO.destination()));
@@ -141,7 +148,7 @@ public class TicketServiceImpl implements TicketService {
     }
 
     private List<Seat> reserveAvailableSeats(int passengerCount, String origin,
-                                             String destination, String bookedId) {
+            String destination, String bookedId) {
 
         List<Seat> reservedSeats = new ArrayList<>();
         int passengerAdded = 0;
@@ -163,7 +170,7 @@ public class TicketServiceImpl implements TicketService {
         if (passengerAdded < passengerCount) {
             // rollback if we failed to acquire all needed seats
             for (Seat seat : reservedSeats) {
-               seat.freeSegments(segmentIndexes);
+                seat.freeSegments(segmentIndexes);
             }
             return Collections.emptyList();
         }
@@ -177,11 +184,9 @@ public class TicketServiceImpl implements TicketService {
 
         if (priceWithRoute.containsKey(origin) && priceWithRoute.get(origin).containsKey(destination)) {
             routePrice = priceWithRoute.get(origin).get(destination);
-        }
-        else if (priceWithRoute.containsKey(destination) && priceWithRoute.get(destination).containsKey(origin)) {
+        } else if (priceWithRoute.containsKey(destination) && priceWithRoute.get(destination).containsKey(origin)) {
             routePrice = priceWithRoute.get(destination).get(origin);
-        }
-        else {
+        } else {
             throw new RouteNotFoundException("Route not found: " + origin + " -> " + destination);
         }
         return routePrice * passengerCount;
