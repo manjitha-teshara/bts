@@ -7,6 +7,7 @@ import org.bts.app.exception.InvalidRequestException;
 import org.bts.app.exception.RouteNotFoundException;
 import org.bts.app.exception.SeatUnavailableException;
 import org.bts.app.service.TicketService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,12 @@ class TicketServiceImplTest {
         // Because TicketServiceImpl uses static Storage, it's shared across tests.
         // In a real Spring app, this would be injected, but for Vanilla Java, we just instantiate it.
         ticketService = new TicketServiceImpl();
+    }
+
+    @AfterEach
+    void tearDown() {
+        // Since SEATS is static, we must clean it up after every test
+        ticketService.resetSystem();
     }
 
     @Test
@@ -117,6 +124,21 @@ class TicketServiceImplTest {
 
         // Act & Assert
         InvalidRequestException exception = assertThrows(InvalidRequestException.class, () -> ticketService.reserveTicket(unconfirmedRequest));
-        assertEquals("Price confirmation is required", exception.getMessage());
+        assertEquals("Price confirmation is required to reserve seats", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("Should successfully reset the ticketing system")
+    void shouldResetSystemSuccessfully() {
+        // Arrange
+        ReserveRequestDTO request = new ReserveRequestDTO("A", "C", 2, true);
+        ticketService.reserveTicket(request); // Book 2 seats
+
+        // Act
+        ticketService.resetSystem(); // Reset all
+
+        // Assert
+        AvailabilityResponseDTO response = ticketService.checkAvailability(2, "A", "C");
+        assertEquals(40, response.availableSeats().size(), "All 40 seats should be available after reset");
     }
 }

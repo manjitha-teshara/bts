@@ -4,7 +4,6 @@ import java.time.LocalDate;
 
 /**
  * Data Transfer Object representing a request to book bus tickets.
- * Uses a Java record for immutability.
  *
  * @param origin The starting point of the journey.
  * @param destination The ending point of the journey.

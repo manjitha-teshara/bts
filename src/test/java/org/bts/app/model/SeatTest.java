@@ -104,4 +104,24 @@ class SeatTest {
         assertNull(currentIds[3], "Booking ID should be cleared");
         assertNull(currentIds[4], "Booking ID should be cleared");
     }
+
+    @Test
+    @DisplayName("Should successfully reset all segments to AVAILABLE and clear reservation IDs")
+    void shouldResetSuccessfully() {
+        // Arrange
+        Integer[] segmentsToBook = {1, 2, 3};
+        seat.reserveSegments(segmentsToBook, "TKT-REFRESH-TEST");
+        
+        // Act
+        seat.reset();
+        
+        // Assert
+        SeatStatus[] currentStatus = seat.getSegmentStatus();
+        String[] currentIds = seat.getReservationIds();
+        
+        for (int i = 0; i < currentStatus.length; i++) {
+            assertEquals(SeatStatus.AVAILABLE, currentStatus[i], "Segment " + i + " should be reset to AVAILABLE");
+            assertNull(currentIds[i], "Reservation ID for segment " + i + " should be null after reset");
+        }
+    }
 }

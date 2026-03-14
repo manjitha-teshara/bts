@@ -7,8 +7,6 @@ import java.util.Arrays;
  * The seat's availability is segmented to allow overlapping bookings
  * for different parts of a journey.
  * 
- * Thread-Safety: Modification of the seat's segment status is thread-safe.
- * State mutation methods are synchronized to prevent race conditions during booking.
  */
 public class Seat {
     private String seatId; // e.g., 1A, 2A
@@ -19,7 +17,7 @@ public class Seat {
     private final String[] reservationIds = new String[6];
 
     /**
-     * Constructs a seat and initializes all segments to AVAILABLE.
+     * constructs a seat and initializes all segments to AVAILABLE.
      */
     public Seat() {
         Arrays.fill(segmentStatus, SeatStatus.AVAILABLE);
@@ -114,5 +112,13 @@ public class Seat {
             segmentStatus[index] = SeatStatus.AVAILABLE;
             reservationIds[index] = null;
         }
+    }
+
+    /**
+     * Resets the seat to its initial state (all segments AVAILABLE, no reservations).
+     */
+    public synchronized void reset() {
+        Arrays.fill(segmentStatus, SeatStatus.AVAILABLE);
+        Arrays.fill(reservationIds, null);
     }
 }

@@ -10,7 +10,7 @@ import org.bts.app.dto.ReserveResponseDTO;
 public interface TicketService {
 
     /**
-     * Checks if there are enough available seats for a specific route.
+     * checks if there are enough available seats for a specific route.
      *
      * @param passengerCount The required number of seats.
      * @param origin         The starting location.
@@ -20,11 +20,16 @@ public interface TicketService {
     AvailabilityResponseDTO checkAvailability(int passengerCount, String origin, String destination);
 
     /**
-     * Attempts to book a ticket for the specified route and passengers.
+     * attempts to book a ticket for the specified route and passengers.
      *
      * @param requestDTO {@link ReserveRequestDTO} containing booking details.
      * @return {@link ReserveResponseDTO} with the result of the booking.
      */
     ReserveResponseDTO reserveTicket(ReserveRequestDTO requestDTO);
+
+    /**
+     * Resets the entire reserved seat list, making all seats available.
+     */
+    void resetSystem();
 
 }

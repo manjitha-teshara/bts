@@ -21,12 +21,10 @@ import java.util.logging.Logger;
 
 /**
  * Implementation of the {@link TicketService}.
+ *
  * <p>
  * This service handles the core business logic for checking ticket availability
- * and reserving seats. The underlying data model ({@link Seat}) guarantees
- * thread-safe segment reservation. This service acts as the orchestrator to
- * acquire the needed seats atomically and roll back if sufficient seats cannot
- * be acquired.
+ * and reserving seats.
  * </p>
  */
 public class TicketServiceImpl implements TicketService {
@@ -43,8 +41,8 @@ public class TicketServiceImpl implements TicketService {
      * Checks the availability of seats for a given route and passenger count.
      * 
      * @param passengerCount The number of requested seats.
-     * @param origin         The starting node of the journey.
-     * @param destination    The destination node of the journey.
+     * @param origin         The starting point of the journey.
+     * @param destination    The end point of the journey.
      * @return AvailabilityResponseDTO containing available seats (or empty list if
      *         unavailable) and total price.
      * @throws InvalidRequestException if any input parameter is invalid.
@@ -68,7 +66,7 @@ public class TicketServiceImpl implements TicketService {
     /**
      * Books a ticket by attempting to reserve the necessary segments across the
      * required number of seats.
-     * If enough seats cannot be successfully reserved, all mutually reserved seats
+     * If enough seats cannot be successfully reserved, all already reserved seats
      * for this transaction
      * are rolled back to ensure data consistency.
      *
@@ -80,7 +78,7 @@ public class TicketServiceImpl implements TicketService {
      * @throws SeatUnavailableException if not enough seats could be acquired.
      */
     @Override
-    public ReserveResponseDTO reserveTicket(ReserveRequestDTO requestDTO) {
+    public synchronized ReserveResponseDTO reserveTicket(ReserveRequestDTO requestDTO) {
         validateInputs(requestDTO.passengerCount(), requestDTO.origin(), requestDTO.destination());
 
         if (!requestDTO.priceConfirmation()) {
@@ -160,7 +158,7 @@ public class TicketServiceImpl implements TicketService {
                 break;
             }
 
-            // reserveSegments is atomic thread-safe at the Seat level
+            // reserveSegments is atomic thread safe at the Seat level
             if (seat.reserveSegments(segmentIndexes, bookedId)) {
                 reservedSeats.add(seat);
                 passengerAdded++;
@@ -192,4 +190,16 @@ public class TicketServiceImpl implements TicketService {
         return routePrice * passengerCount;
     }
 
+    /**
+     * Resets all seats to their initial AVAILABLE state.
+     * This method is synchronized to prevent API bookings from
+     * occurring while the system is undergoing maintenance.
+     */
+    @Override
+    public synchronized void resetSystem() {
+        for (Seat seat : SEATS.values()) {
+            seat.reset();
+        }
+        LOGGER.info("System has been refreshed. All seats are now available.");
+    }
 }

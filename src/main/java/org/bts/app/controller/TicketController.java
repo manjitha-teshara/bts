@@ -25,12 +25,6 @@ import java.util.logging.Logger;
 
 /**
  * TicketController responsible for handling HTTP requests related to ticket operations.
- * <p>
- * This class implements the {@link HttpHandler} interface to process incoming
- * requests natively using the <code>com.sun.net.httpserver</code> package. It routes
- * requests to the appropriate {@link TicketService} methods, handles JSON serialization,
- * and maps custom domain exceptions to standard HTTP status codes.
- * </p>
  */
 public class TicketController implements HttpHandler {
 
@@ -71,7 +65,7 @@ public class TicketController implements HttpHandler {
 
     /**
      * Handles the GET request for checking seat availability.
-     * Expects query parameters: origin, destination, passengerCount, travelDate.
+     * Expects query parameters: origin, destination, passengerCount.
      *
      * @param exchange The HTTP exchange context.
      * @throws IOException If an I/O error occurs.
@@ -82,10 +76,9 @@ public class TicketController implements HttpHandler {
         String origin = params.get("origin");
         String destination = params.get("destination");
         String passengerCountStr = params.get("passengerCount");
-        String travelDate = params.get("travelDate");
 
-        if (origin == null || destination == null || passengerCountStr == null || travelDate == null) {
-            throw new InvalidRequestException("Missing required query parameters: origin, destination, passengerCount, travelDate");
+        if (origin == null || destination == null || passengerCountStr == null ) {
+            throw new InvalidRequestException("Missing required query parameters: origin, destination, passengerCount");
         }
 
         int passengerCount;
