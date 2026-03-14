@@ -4,6 +4,9 @@ import org.bts.app.dto.AvailabilityResponseDTO;
 import org.bts.app.dto.BookingRequestDTO;
 import org.bts.app.dto.BookingResponseDTO;
 import org.bts.app.dto.TripDetailsDTO;
+import org.bts.app.exception.InvalidRequestException;
+import org.bts.app.exception.RouteNotFoundException;
+import org.bts.app.exception.SeatUnavailableException;
 import org.bts.app.model.Seat;
 import org.bts.app.service.TicketService;
 import org.bts.app.storage.Storage;
@@ -16,9 +19,16 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
-import static org.bts.app.model.SeatStatus.AVAILABLE;
-import static org.bts.app.model.SeatStatus.RESERVED;
-
+/**
+ * Implementation of the {@link TicketService}.
+ * <p>
+ * This service handles the core business logic for checking ticket availability
+ * and reserving seats. The underlying data model ({@link Seat}) guarantees
+ * thread-safe segment reservation. This service acts as the orchestrator to
+ * acquire the needed seats atomically and roll back if sufficient seats cannot
+ * be acquired.
+ * </p>
+ */
 public class TicketServiceImpl implements TicketService {
 
     private static final Logger LOGGER = Logger.getLogger(TicketServiceImpl.class.getName());
@@ -29,6 +39,17 @@ public class TicketServiceImpl implements TicketService {
 
     private static final Map<String, Map<String, Double>> priceWithRoute = Storage.priceWithRouteInitialization();
 
+    /**
+     * Checks the availability of seats for a given route and passenger count.
+     * 
+     * @param passengerCount The number of requested seats.
+     * @param origin         The starting node of the journey.
+     * @param destination    The destination node of the journey.
+     * @param travelDate     The date of the journey.
+     * @return AvailabilityResponseDTO containing available seats (or empty list if unavailable) and total price.
+     * @throws InvalidRequestException if any input parameter is invalid.
+     * @throws RouteNotFoundException if the specified route does not exist.
+     */
     @Override
     public AvailabilityResponseDTO checkAvailability(int passengerCount, String origin, String destination, String travelDate) {
         validateInputs(passengerCount, origin, destination);
@@ -44,46 +65,54 @@ public class TicketServiceImpl implements TicketService {
         return new AvailabilityResponseDTO(seats, totalPrice);
     }
 
+    /**
+     * Books a ticket by attempting to reserve the necessary segments across the required number of seats.
+     * If enough seats cannot be successfully reserved, all mutually reserved seats for this transaction
+     * are rolled back to ensure data consistency.
+     *
+     * @param requestDTO The booking constraints.
+     * @return BookingResponseDTO containing the Booking ID and finalized trip details.
+     * @throws InvalidRequestException if the request parameters are invalid.
+     * @throws RouteNotFoundException if the requested route is not available.
+     * @throws SeatUnavailableException if not enough seats could be acquired.
+     */
     @Override
     public BookingResponseDTO bookTicket(BookingRequestDTO requestDTO) {
-        validateInputs(requestDTO.getPassengerCount(), requestDTO.getOrigin(), requestDTO.getDestination());
+        validateInputs(requestDTO.passengerCount(), requestDTO.origin(), requestDTO.destination());
 
         String bookedId = "TKT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
         List<Seat> seats = reserveAvailableSeats(
-                requestDTO.getPassengerCount(),
-                requestDTO.getOrigin(),
-                requestDTO.getDestination(),
+                requestDTO.passengerCount(),
+                requestDTO.origin(),
+                requestDTO.destination(),
                 bookedId
         );
 
-        Double totalPrice = getTotalPrice(requestDTO.getPassengerCount(),
-                requestDTO.getOrigin(), requestDTO.getDestination()
-        );
-
-        TripDetailsDTO tripDetails = new TripDetailsDTO(requestDTO.getOrigin(), requestDTO.getDestination(), requestDTO.getTravelDate());
-
         if (seats.isEmpty()) {
-            LOGGER.warning(String.format("Booking failed for %s from %s to %s due to insufficient seats", bookedId, requestDTO.getOrigin(), requestDTO.getDestination()));
-            return new BookingResponseDTO(bookedId, tripDetails, Collections.emptyList(), totalPrice);
+            LOGGER.warning(String.format("Booking failed for %s from %s to %s due to insufficient seats", bookedId, requestDTO.origin(), requestDTO.destination()));
+            throw new SeatUnavailableException("Not enough seats available for this route.");
         }
 
-        LOGGER.info(String.format("Successfully booked %d seats for %s (Booking ID: %s)", seats.size(), requestDTO.getOrigin() + "->" + requestDTO.getDestination(), bookedId));
+        Double totalPrice = getTotalPrice(requestDTO.passengerCount(), requestDTO.origin(), requestDTO.destination());
+        TripDetailsDTO tripDetails = new TripDetailsDTO(requestDTO.origin(), requestDTO.destination(), requestDTO.travelDate());
+
+        LOGGER.info(String.format("Successfully booked %d seats for %s (Booking ID: %s)", seats.size(), requestDTO.origin() + "->" + requestDTO.destination(), bookedId));
         return new BookingResponseDTO(bookedId, tripDetails, seats, totalPrice);
     }
 
     private void validateInputs(int passengerCount, String origin, String destination) {
         if (passengerCount <= 0) {
-            throw new IllegalArgumentException("Passenger count must be greater than zero");
+            throw new InvalidRequestException("Passenger count must be greater than zero");
         }
         if (origin == null || origin.trim().isEmpty()) {
-            throw new IllegalArgumentException("Origin is required");
+            throw new InvalidRequestException("Origin is required");
         }
         if (destination == null || destination.trim().isEmpty()) {
-            throw new IllegalArgumentException("Destination is required");
+            throw new InvalidRequestException("Destination is required");
         }
         if (!segmentStatusIndexes.containsKey(origin) || !segmentStatusIndexes.get(origin).containsKey(destination)) {
-            throw new IllegalArgumentException("Invalid route: " + origin + " to " + destination);
+            throw new RouteNotFoundException("Invalid route: " + origin + " to " + destination);
         }
     }
 
@@ -95,92 +124,49 @@ public class TicketServiceImpl implements TicketService {
         Integer[] segmentIndexes = segmentStatusIndexes.get(origin).get(destination);
 
         for (Seat seat : SEATS.values()) {
-
             if (passengerAdded >= passengerCount) {
                 return seats;
             }
 
-            synchronized (seat) {
-
-                boolean available = true;
-
-                for (Integer index : segmentIndexes) {
-                    if (seat.getSegmentStatus()[index] != AVAILABLE) {
-                        available = false;
-                        break;
-                    }
-                }
-
-                if (available) {
-                    seats.add(seat);
-                    passengerAdded++;
-                }
+            if (seat.isAvailableForSegments(segmentIndexes)) {
+                seats.add(seat);
+                passengerAdded++;
             }
         }
 
-        return seats;
+        // return empty if we couldn't fulfill the entire passenger count
+        return passengerAdded == passengerCount ? seats : Collections.emptyList();
     }
 
     private List<Seat> reserveAvailableSeats(int passengerCount, String origin,
                                              String destination, String bookedId) {
 
-        List<Seat> seats = new ArrayList<>();
+        List<Seat> reservedSeats = new ArrayList<>();
         int passengerAdded = 0;
 
         Integer[] segmentIndexes = segmentStatusIndexes.get(origin).get(destination);
 
         for (Seat seat : SEATS.values()) {
-
             if (passengerAdded >= passengerCount) {
                 break;
             }
 
-            synchronized (seat) {
-
-                boolean available = true;
-
-                for (Integer index : segmentIndexes) {
-                    if (seat.getSegmentStatus()[index] != AVAILABLE) {
-                        available = false;
-                        break;
-                    }
-                }
-
-                if (available) {
-
-                    // reserve all segments
-                    for (Integer index : segmentIndexes) {
-                        seat.getSegmentStatus()[index] = RESERVED;
-                        seat.getReservationIds()[index] = bookedId;
-                    }
-
-                    seats.add(seat);
-                    passengerAdded++;
-                }
+            // reserveSegments is atomic thread-safe at the Seat level
+            if (seat.reserveSegments(segmentIndexes, bookedId)) {
+                reservedSeats.add(seat);
+                passengerAdded++;
             }
         }
 
         if (passengerAdded < passengerCount) {
-            rollbackReservation(seats, segmentIndexes);
+            // rollback if we failed to acquire all needed seats
+            for (Seat seat : reservedSeats) {
+               seat.freeSegments(segmentIndexes);
+            }
             return Collections.emptyList();
         }
 
-        return seats;
-    }
-
-    private void rollbackReservation(List<Seat> seats, Integer[] segmentIndexes) {
-
-        for (Seat seat : seats) {
-
-            synchronized (seat) {
-
-                for (Integer index : segmentIndexes) {
-                    seat.getSegmentStatus()[index] = AVAILABLE;
-                    seat.getReservationIds()[index] = null;
-                }
-
-            }
-        }
+        return reservedSeats;
     }
 
     private Double getTotalPrice(int passengerCount, String origin, String destination) {
@@ -194,7 +180,7 @@ public class TicketServiceImpl implements TicketService {
             routePrice = priceWithRoute.get(destination).get(origin);
         }
         else {
-            throw new IllegalArgumentException("route not found: " + origin + " -> " + destination);
+            throw new RouteNotFoundException("Route not found: " + origin + " -> " + destination);
         }
         return routePrice * passengerCount;
     }

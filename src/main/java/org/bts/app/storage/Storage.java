@@ -1,13 +1,10 @@
 package org.bts.app.storage;
 
 import org.bts.app.model.Seat;
-import org.bts.app.model.SeatStatus;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static org.bts.app.model.SeatStatus.AVAILABLE;
 
 public final class Storage {
 
@@ -66,16 +63,15 @@ public final class Storage {
     public static ConcurrentHashMap<String, Seat> seatsInitialization() {
         ConcurrentHashMap<String, Seat> seats = new ConcurrentHashMap<>();
 
-        for(char row='A'; row<='J'; row++){
-            for(int i=1;i<5;i++){
+        for (char row = 'A'; row <= 'J'; row++) {
+            for (int i = 1; i <= 4; i++) {
                 String seatId = row + "" + i;
 
                 Seat seat = new Seat();
                 seat.setSeatId(seatId);
                 seat.setRow(String.valueOf(row));
                 seat.setColumn(i);
-                SeatStatus[] segmentStatusInit = {AVAILABLE, AVAILABLE, AVAILABLE, AVAILABLE, AVAILABLE, AVAILABLE};
-                seat.setSegmentStatus(segmentStatusInit);
+                
                 seats.put(seatId, seat);
             }
         }

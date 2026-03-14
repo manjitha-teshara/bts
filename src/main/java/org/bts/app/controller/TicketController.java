@@ -9,6 +9,10 @@ import org.bts.app.dto.BookingResponseDTO;
 import org.bts.app.dto.ErrorResponseDTO;
 import org.bts.app.service.TicketService;
 
+import org.bts.app.exception.InvalidRequestException;
+import org.bts.app.exception.RouteNotFoundException;
+import org.bts.app.exception.SeatUnavailableException;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -19,6 +23,15 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Controller responsible for handling HTTP requests related to ticket operations.
+ * <p>
+ * This class implements the {@link HttpHandler} interface to process incoming
+ * requests natively using the <code>com.sun.net.httpserver</code> package. It routes
+ * requests to the appropriate {@link TicketService} methods, handles JSON serialization,
+ * and maps custom domain exceptions to standard HTTP status codes.
+ * </p>
+ */
 public class TicketController implements HttpHandler {
 
     private static final Logger LOGGER = Logger.getLogger(TicketController.class.getName());
@@ -41,15 +54,28 @@ public class TicketController implements HttpHandler {
             } else {
                 writeResponse(exchange, 404, new ErrorResponseDTO("Endpoint not found", 404));
             }
-        } catch (IllegalArgumentException e) {
+        } catch (InvalidRequestException | IllegalArgumentException e) {
             LOGGER.log(Level.WARNING, "Bad Request: " + e.getMessage());
             writeResponse(exchange, 400, new ErrorResponseDTO(e.getMessage(), 400));
+        } catch (RouteNotFoundException e) {
+            LOGGER.log(Level.WARNING, "Route Not Found: " + e.getMessage());
+            writeResponse(exchange, 404, new ErrorResponseDTO(e.getMessage(), 404));
+        } catch (SeatUnavailableException e) {
+            LOGGER.log(Level.WARNING, "Conflict: " + e.getMessage());
+            writeResponse(exchange, 409, new ErrorResponseDTO(e.getMessage(), 409));
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Internal Server Error", e);
             writeResponse(exchange, 500, new ErrorResponseDTO("Internal Server Error", 500));
         }
     }
 
+    /**
+     * Handles the GET request for checking seat availability.
+     * Expects query parameters: origin, destination, passengerCount, travelDate.
+     *
+     * @param exchange The HTTP exchange context.
+     * @throws IOException If an I/O error occurs.
+     */
     private void handleAvailability(HttpExchange exchange) throws IOException {
         Map<String, String> params = parseQueryParams(exchange.getRequestURI().getQuery());
 
@@ -59,33 +85,40 @@ public class TicketController implements HttpHandler {
         String travelDate = params.get("travelDate");
 
         if (origin == null || destination == null || passengerCountStr == null || travelDate == null) {
-            throw new IllegalArgumentException("Missing required query parameters: origin, destination, passengerCount, travelDate");
+            throw new InvalidRequestException("Missing required query parameters: origin, destination, passengerCount, travelDate");
         }
 
         int passengerCount;
         try {
             passengerCount = Integer.parseInt(passengerCountStr);
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid passengerCount: must be an integer");
+            throw new InvalidRequestException("Invalid passengerCount: must be an integer");
         }
 
         AvailabilityResponseDTO responseDTO = service.checkAvailability(passengerCount, origin, destination, travelDate);
         writeResponse(exchange, 200, responseDTO);
     }
 
+    /**
+     * Handles the POST request for reserving seats.
+     * Expects a JSON payload mirroring the {@link BookingRequestDTO}.
+     *
+     * @param exchange The HTTP exchange context.
+     * @throws IOException If an I/O error occurs.
+     */
     private void handleReservation(HttpExchange exchange) throws IOException {
         InputStream requestBody = exchange.getRequestBody();
         String body = new String(requestBody.readAllBytes(), StandardCharsets.UTF_8);
 
         if (body.isEmpty()) {
-            throw new IllegalArgumentException("Request body cannot be empty");
+            throw new InvalidRequestException("Request body cannot be empty");
         }
 
         BookingRequestDTO requestDTO = JsonUtils.fromJson(body, BookingRequestDTO.class);
         
-        // Basic validation for DTO fields
-        if (requestDTO.getOrigin() == null || requestDTO.getDestination() == null || requestDTO.getPassengerCount() <= 0) {
-             throw new IllegalArgumentException("Invalid booking request: origin, destination, and passengerCount are required");
+        // Basic validation for DTO fields using record accessors
+        if (requestDTO.origin() == null || requestDTO.destination() == null || requestDTO.passengerCount() <= 0) {
+             throw new InvalidRequestException("Invalid booking request: origin, destination, and passengerCount are required");
         }
 
         BookingResponseDTO responseDTO = service.bookTicket(requestDTO);
