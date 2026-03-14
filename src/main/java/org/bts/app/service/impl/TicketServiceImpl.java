@@ -14,11 +14,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
 
 import static org.bts.app.model.SeatStatus.AVAILABLE;
 import static org.bts.app.model.SeatStatus.RESERVED;
 
 public class TicketServiceImpl implements TicketService {
+
+    private static final Logger LOGGER = Logger.getLogger(TicketServiceImpl.class.getName());
 
     private static final ConcurrentHashMap<String, Seat> SEATS = Storage.seatsInitialization();
 
@@ -28,13 +31,14 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     public AvailabilityResponseDTO checkAvailability(int passengerCount, String origin, String destination, String travelDate) {
+        validateInputs(passengerCount, origin, destination);
 
         List<Seat> seats = getAvailableSeats(passengerCount, origin, destination);
         Double totalPrice = 0.0;
-        if(seats.isEmpty()) {
+        if (seats.isEmpty()) {
             seats = Collections.emptyList();
-        }
-        else {
+            LOGGER.info(String.format("No availability for %d passengers from %s to %s", passengerCount, origin, destination));
+        } else {
             totalPrice = getTotalPrice(passengerCount, origin, destination);
         }
         return new AvailabilityResponseDTO(seats, totalPrice);
@@ -42,7 +46,7 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     public BookingResponseDTO bookTicket(BookingRequestDTO requestDTO) {
-
+        validateInputs(requestDTO.getPassengerCount(), requestDTO.getOrigin(), requestDTO.getDestination());
 
         String bookedId = "TKT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
@@ -60,12 +64,27 @@ public class TicketServiceImpl implements TicketService {
         TripDetailsDTO tripDetails = new TripDetailsDTO(requestDTO.getOrigin(), requestDTO.getDestination(), requestDTO.getTravelDate());
 
         if (seats.isEmpty()) {
-            seats = Collections.emptyList();
-
-            return new BookingResponseDTO(bookedId, tripDetails, seats, totalPrice);
+            LOGGER.warning(String.format("Booking failed for %s from %s to %s due to insufficient seats", bookedId, requestDTO.getOrigin(), requestDTO.getDestination()));
+            return new BookingResponseDTO(bookedId, tripDetails, Collections.emptyList(), totalPrice);
         }
 
+        LOGGER.info(String.format("Successfully booked %d seats for %s (Booking ID: %s)", seats.size(), requestDTO.getOrigin() + "->" + requestDTO.getDestination(), bookedId));
         return new BookingResponseDTO(bookedId, tripDetails, seats, totalPrice);
+    }
+
+    private void validateInputs(int passengerCount, String origin, String destination) {
+        if (passengerCount <= 0) {
+            throw new IllegalArgumentException("Passenger count must be greater than zero");
+        }
+        if (origin == null || origin.trim().isEmpty()) {
+            throw new IllegalArgumentException("Origin is required");
+        }
+        if (destination == null || destination.trim().isEmpty()) {
+            throw new IllegalArgumentException("Destination is required");
+        }
+        if (!segmentStatusIndexes.containsKey(origin) || !segmentStatusIndexes.get(origin).containsKey(destination)) {
+            throw new IllegalArgumentException("Invalid route: " + origin + " to " + destination);
+        }
     }
 
     private List<Seat> getAvailableSeats(int passengerCount, String origin, String destination) {
