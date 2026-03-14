@@ -138,7 +138,8 @@ class TicketServiceImplTest {
         ticketService.resetSystem(); // Reset all
 
         // Assert
-        AvailabilityResponseDTO response = ticketService.checkAvailability(2, "A", "C");
+        // request availability for 40 to check if all seats are freed
+        AvailabilityResponseDTO response = ticketService.checkAvailability(40, "A", "C");
         assertEquals(40, response.availableSeats().size(), "All 40 seats should be available after reset");
     }
 }
