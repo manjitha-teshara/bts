@@ -1,8 +1,8 @@
 package org.bts.app.service;
 
 import org.bts.app.dto.AvailabilityResponseDTO;
-import org.bts.app.dto.BookingRequestDTO;
-import org.bts.app.dto.BookingResponseDTO;
+import org.bts.app.dto.ReserveRequestDTO;
+import org.bts.app.dto.ReserveResponseDTO;
 
 /**
  * Service interface defining the core bus ticketing operations.
@@ -23,9 +23,9 @@ public interface TicketService {
     /**
      * Attempts to book a ticket for the specified route and passengers.
      *
-     * @param requestDTO {@link BookingRequestDTO} containing booking details.
-     * @return {@link BookingResponseDTO} with the result of the booking.
+     * @param requestDTO {@link ReserveRequestDTO} containing booking details.
+     * @return {@link ReserveResponseDTO} with the result of the booking.
      */
-    BookingResponseDTO bookTicket(BookingRequestDTO requestDTO);
+    ReserveResponseDTO reserveTicket(ReserveRequestDTO requestDTO);
 
 }

@@ -1,8 +1,8 @@
 package org.bts.app.service.impl;
 
 import org.bts.app.dto.AvailabilityResponseDTO;
-import org.bts.app.dto.BookingRequestDTO;
-import org.bts.app.dto.BookingResponseDTO;
+import org.bts.app.dto.ReserveRequestDTO;
+import org.bts.app.dto.ReserveResponseDTO;
 import org.bts.app.dto.TripDetailsDTO;
 import org.bts.app.exception.InvalidRequestException;
 import org.bts.app.exception.RouteNotFoundException;
@@ -77,7 +77,7 @@ public class TicketServiceImpl implements TicketService {
      * @throws SeatUnavailableException if not enough seats could be acquired.
      */
     @Override
-    public BookingResponseDTO bookTicket(BookingRequestDTO requestDTO) {
+    public ReserveResponseDTO reserveTicket(ReserveRequestDTO requestDTO) {
         validateInputs(requestDTO.passengerCount(), requestDTO.origin(), requestDTO.destination());
 
         String bookedId = "TKT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
@@ -98,7 +98,7 @@ public class TicketServiceImpl implements TicketService {
         TripDetailsDTO tripDetails = new TripDetailsDTO(requestDTO.origin(), requestDTO.destination(), requestDTO.travelDate());
 
         LOGGER.info(String.format("Successfully booked %d seats for %s (Booking ID: %s)", seats.size(), requestDTO.origin() + "->" + requestDTO.destination(), bookedId));
-        return new BookingResponseDTO(bookedId, tripDetails, seats, totalPrice);
+        return new ReserveResponseDTO(bookedId, tripDetails, seats, totalPrice);
     }
 
     private void validateInputs(int passengerCount, String origin, String destination) {

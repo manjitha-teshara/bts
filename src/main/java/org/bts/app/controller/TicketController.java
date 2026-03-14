@@ -4,8 +4,8 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import org.bts.app.Utils.JsonUtils;
 import org.bts.app.dto.AvailabilityResponseDTO;
-import org.bts.app.dto.BookingRequestDTO;
-import org.bts.app.dto.BookingResponseDTO;
+import org.bts.app.dto.ReserveRequestDTO;
+import org.bts.app.dto.ReserveResponseDTO;
 import org.bts.app.dto.ErrorResponseDTO;
 import org.bts.app.service.TicketService;
 
@@ -101,7 +101,7 @@ public class TicketController implements HttpHandler {
 
     /**
      * Handles the POST request for reserving seats.
-     * Expects a JSON payload mirroring the {@link BookingRequestDTO}.
+     * Expects a JSON payload mirroring the {@link ReserveRequestDTO}.
      *
      * @param exchange The HTTP exchange context.
      * @throws IOException If an I/O error occurs.
@@ -114,14 +114,14 @@ public class TicketController implements HttpHandler {
             throw new InvalidRequestException("Request body cannot be empty");
         }
 
-        BookingRequestDTO requestDTO = JsonUtils.fromJson(body, BookingRequestDTO.class);
+        ReserveRequestDTO requestDTO = JsonUtils.fromJson(body, ReserveRequestDTO.class);
         
         // Basic validation for DTO fields using record accessors
         if (requestDTO.origin() == null || requestDTO.destination() == null || requestDTO.passengerCount() <= 0) {
              throw new InvalidRequestException("Invalid booking request: origin, destination, and passengerCount are required");
         }
 
-        BookingResponseDTO responseDTO = service.bookTicket(requestDTO);
+        ReserveResponseDTO responseDTO = service.reserveTicket(requestDTO);
         writeResponse(exchange, 201, responseDTO);
     }
 

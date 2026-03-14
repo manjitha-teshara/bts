@@ -12,7 +12,7 @@ import java.time.LocalDate;
  * @param travelDate The date of travel.
  * @param priceConfirmation Flag indicating if the user confirmed the price.
  */
-public record BookingRequestDTO(
+public record ReserveRequestDTO(
         String origin,
         String destination,
         int passengerCount,
