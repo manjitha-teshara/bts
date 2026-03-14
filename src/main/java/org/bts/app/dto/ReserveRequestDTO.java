@@ -9,13 +9,11 @@ import java.time.LocalDate;
  * @param origin The starting point of the journey.
  * @param destination The ending point of the journey.
  * @param passengerCount The number of passengers booking tickets.
- * @param travelDate The date of travel.
  * @param priceConfirmation Flag indicating if the user confirmed the price.
  */
 public record ReserveRequestDTO(
         String origin,
         String destination,
         int passengerCount,
-        LocalDate travelDate,
         boolean priceConfirmation
 ) {}

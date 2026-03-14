@@ -24,7 +24,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Controller responsible for handling HTTP requests related to ticket operations.
+ * TicketController responsible for handling HTTP requests related to ticket operations.
  * <p>
  * This class implements the {@link HttpHandler} interface to process incoming
  * requests natively using the <code>com.sun.net.httpserver</code> package. It routes
@@ -95,7 +95,7 @@ public class TicketController implements HttpHandler {
             throw new InvalidRequestException("Invalid passengerCount: must be an integer");
         }
 
-        AvailabilityResponseDTO responseDTO = service.checkAvailability(passengerCount, origin, destination, travelDate);
+        AvailabilityResponseDTO responseDTO = service.checkAvailability(passengerCount, origin, destination);
         writeResponse(exchange, 200, responseDTO);
     }
 

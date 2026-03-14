@@ -24,6 +24,6 @@ public class Main {
         server.setExecutor(java.util.concurrent.Executors.newCachedThreadPool());
         server.start();
 
-        LOGGER.info("server started on port 8081");
+        LOGGER.info("server started on port 8080");
     }
 }

@@ -45,13 +45,12 @@ public class TicketServiceImpl implements TicketService {
      * @param passengerCount The number of requested seats.
      * @param origin         The starting node of the journey.
      * @param destination    The destination node of the journey.
-     * @param travelDate     The date of the journey.
      * @return AvailabilityResponseDTO containing available seats (or empty list if unavailable) and total price.
      * @throws InvalidRequestException if any input parameter is invalid.
      * @throws RouteNotFoundException if the specified route does not exist.
      */
     @Override
-    public AvailabilityResponseDTO checkAvailability(int passengerCount, String origin, String destination, String travelDate) {
+    public AvailabilityResponseDTO checkAvailability(int passengerCount, String origin, String destination) {
         validateInputs(passengerCount, origin, destination);
 
         List<Seat> seats = getAvailableSeats(passengerCount, origin, destination);
@@ -95,8 +94,8 @@ public class TicketServiceImpl implements TicketService {
         }
 
         Double totalPrice = getTotalPrice(requestDTO.passengerCount(), requestDTO.origin(), requestDTO.destination());
-        TripDetailsDTO tripDetails = new TripDetailsDTO(requestDTO.origin(), requestDTO.destination(), requestDTO.travelDate());
 
+        TripDetailsDTO tripDetails = new TripDetailsDTO(requestDTO.origin(), requestDTO.destination());
         LOGGER.info(String.format("Successfully booked %d seats for %s (Booking ID: %s)", seats.size(), requestDTO.origin() + "->" + requestDTO.destination(), bookedId));
         return new ReserveResponseDTO(bookedId, tripDetails, seats, totalPrice);
     }

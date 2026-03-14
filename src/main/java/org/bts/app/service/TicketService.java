@@ -15,10 +15,9 @@ public interface TicketService {
      * @param passengerCount The required number of seats.
      * @param origin         The starting location.
      * @param destination    The destination location.
-     * @param travelDate     The date of travel.
      * @return {@link AvailabilityResponseDTO} containing availability details.
      */
-    AvailabilityResponseDTO checkAvailability(int passengerCount, String origin, String destination, String travelDate);
+    AvailabilityResponseDTO checkAvailability(int passengerCount, String origin, String destination);
 
     /**
      * Attempts to book a ticket for the specified route and passengers.
