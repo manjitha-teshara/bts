@@ -104,6 +104,9 @@ public class TicketServiceImpl implements TicketService {
         if (passengerCount <= 0) {
             throw new InvalidRequestException("Passenger count must be greater than zero");
         }
+        if (passengerCount > SEATS.size()) {
+            throw new SeatUnavailableException("Passenger count exceeds total bus capacity");
+        }
         if (origin == null || origin.trim().isEmpty()) {
             throw new InvalidRequestException("Origin is required");
         }
