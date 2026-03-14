@@ -11,7 +11,7 @@ import java.util.Arrays;
  * State mutation methods are synchronized to prevent race conditions during booking.
  */
 public class Seat {
-    private String seatId; // e.g., A-1, A-2
+    private String seatId; // e.g., 1A, 2A
     private String row;    // e.g., A, B, C...
     private int column;    // e.g., 1, 2, 3...
 

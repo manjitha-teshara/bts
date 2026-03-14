@@ -65,7 +65,7 @@ public final class Storage {
 
         for (char row = 'A'; row <= 'J'; row++) {
             for (int i = 1; i <= 4; i++) {
-                String seatId = row + "" + i;
+                String seatId = i + "" + row;
 
                 Seat seat = new Seat();
                 seat.setSeatId(seatId);
