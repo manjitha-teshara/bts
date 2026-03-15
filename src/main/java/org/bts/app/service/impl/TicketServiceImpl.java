@@ -116,7 +116,13 @@ public class TicketServiceImpl implements TicketService {
         if (destination == null || destination.trim().isEmpty()) {
             throw new InvalidRequestException("Destination is required");
         }
-        List<String> segments = Storage.generateSegments(origin, destination);
+        List<String> segments;
+        try {
+            segments = Storage.generateSegments(origin, destination);
+        } catch (IllegalArgumentException e) {
+            throw new RouteNotFoundException("Invalid route: " + origin + " to " + destination);
+        }
+        
         if (segments.isEmpty()) {
             throw new RouteNotFoundException("Invalid route: " + origin + " to " + destination);
         }
