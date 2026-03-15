@@ -115,8 +115,8 @@ class TicketServiceImplTest {
         org.bts.app.dto.ReserveResponseDTO response = ticketService.reserveTicket(request);
 
         assertNotNull(response);
-        assertNotNull(response.bookedId());
-        assertTrue(response.bookedId().startsWith("TKT-"));
+        assertNotNull(response.ticketNumber());
+        assertTrue(response.ticketNumber().startsWith("TKT-"));
         assertEquals("A", response.tripDetails().origin());
         assertEquals("C", response.tripDetails().destination());
         assertEquals(2, response.assignedSeats().size());
