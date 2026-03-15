@@ -23,7 +23,7 @@ public class Seat {
     Map<String, SeatSegment> seatSegments = new HashMap<>();
 
     /**
-     * constructs a seat and initializes all segments to AVAILABLE.
+     * make new seat.
      */
     public Seat() {
     }
@@ -125,11 +125,11 @@ public class Seat {
     }
 
     /**
-     * Attempts to reserve a seat for the given route segments atomically.
+     * try to reserve seat for all segments at once.
      *
-     * @param segments The required segments.
-     * @param bookingId Unique reservation identifier.
-     * @return true if the reservation was successful, otherwise false.
+     * @param segments segments needed.
+     * @param bookingId book ID.
+     * @return true if success, false if fail.
      */
     public synchronized boolean reserveSegments(List<String> segments, String bookingId) {
         if (!isAvailableForSegments(segments)) {
@@ -149,7 +149,7 @@ public class Seat {
     /**
      * Rolls back a reservation, freeing up the specified segments.
      *
-     * @param segments The segments to free.
+     * @param segments segment to clear.
      */
     public synchronized void freeSegments(List<String> segments) {
         for (String segment : segments) {

@@ -3,7 +3,7 @@ package org.bts.app.dto;
 import org.bts.app.model.Seat;
 import java.util.List;
 /**
- * Data Transfer Object representing the response of the Seat Reservation API.
+ * DTO for representing the response of the Seat Reservation API.
  *
  * @param bookedId Unique booking identifier generated for the reservation.
  * @param tripDetails Details of the trip including origin, destination.

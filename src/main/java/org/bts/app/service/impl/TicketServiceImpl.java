@@ -145,7 +145,7 @@ public class TicketServiceImpl implements TicketService {
             }
         }
 
-        // return empty if we couldn't fulfill the entire passenger count
+        // return empty list if we can not give all seat to passenger
         return passengerAdded == passengerCount ? seats : Collections.emptyList();
     }
 
@@ -169,7 +169,7 @@ public class TicketServiceImpl implements TicketService {
         }
 
         if (passengerAdded < passengerCount) {
-            // rollback if we failed to acquire all needed seats
+            // rollback if we fail to get all needed seat
             for (Seat seat : reservedSeats) {
                 seat.freeSegments(segments);
             }

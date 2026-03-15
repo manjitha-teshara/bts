@@ -10,10 +10,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Storage class. hold data like station list, seat array and config.
+ */
 public final class Storage {
 
     private static final List<String> STATIONS = List.of("A", "B", "C", "D");
 
+    // make segment list from origin to dest
     public static List<String> generateSegments(String origin, String destination) {
 
         List<String> segments = new ArrayList<>();

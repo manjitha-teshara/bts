@@ -5,30 +5,30 @@ import org.bts.app.dto.ReserveRequestDTO;
 import org.bts.app.dto.ReserveResponseDTO;
 
 /**
- * Service interface defining the core bus ticketing operations.
+ * Service interface for doing bus ticket operations.
  */
 public interface TicketService {
 
     /**
-     * checks if there are enough available seats for a specific route.
+     * check available seat for route.
      *
-     * @param passengerCount The required number of seats.
-     * @param origin         The starting location.
-     * @param destination    The destination location.
-     * @return {@link AvailabilityResponseDTO} containing availability details.
+     * @param passengerCount how many passenger
+     * @param origin         start place
+     * @param destination    where to go
+     * @return AvailabilityResponseDTO has seat details.
      */
     AvailabilityResponseDTO checkAvailability(int passengerCount, String origin, String destination);
 
     /**
-     * attempts to book a ticket for the specified route and passengers.
+     * try to book ticket for passenger.
      *
-     * @param requestDTO {@link ReserveRequestDTO} containing booking details.
-     * @return {@link ReserveResponseDTO} with the result of the booking.
+     * @param requestDTO ReserveRequestDTO have book details
+     * @return ReserveResponseDTO show book result
      */
     ReserveResponseDTO reserveTicket(ReserveRequestDTO requestDTO);
 
     /**
-     * Resets the entire reserved seat list, making all seats available.
+     * clear all booked seat and make all seat available again.
      */
     void resetSystem();
 

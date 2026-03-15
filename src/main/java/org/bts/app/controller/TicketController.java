@@ -67,8 +67,8 @@ public class TicketController implements HttpHandler {
      * Handles the GET request for checking seat availability.
      * Expects query parameters: origin, destination, passengerCount.
      *
-     * @param exchange The HTTP exchange context.
-     * @throws IOException when an I/O error occurs.
+     * @param exchange HTTP exchange context.
+     * @throws IOException when I/O error happen.
      */
     private void handleAvailability(HttpExchange exchange) throws IOException {
         Map<String, String> params = parseQueryParams(exchange.getRequestURI().getQuery());
@@ -96,8 +96,8 @@ public class TicketController implements HttpHandler {
      * Handles the POST request for reserving seats.
      * Expects a JSON payload mirroring the {@link ReserveRequestDTO}.
      *
-     * @param exchange The HTTP exchange context.
-     * @throws IOException If an I/O error occurs.
+     * @param exchange HTTP exchange context.
+     * @throws IOException If I/O error happen.
      */
     private void handleReservation(HttpExchange exchange) throws IOException {
         InputStream requestBody = exchange.getRequestBody();
@@ -109,7 +109,6 @@ public class TicketController implements HttpHandler {
 
         ReserveRequestDTO requestDTO = JsonUtils.fromJson(body, ReserveRequestDTO.class);
         
-        // Basic validation for DTO fields using record accessors
         if (requestDTO.origin() == null || requestDTO.destination() == null || requestDTO.passengerCount() <= 0) {
              throw new InvalidRequestException("Invalid booking request: origin, destination, and passengerCount are required");
         }
