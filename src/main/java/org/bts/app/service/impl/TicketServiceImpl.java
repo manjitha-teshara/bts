@@ -33,8 +33,6 @@ public class TicketServiceImpl implements TicketService {
 
     private static final ConcurrentHashMap<String, Seat> SEATS = Storage.seatsInitialization();
 
-    private static final Map<String, Map<String, Integer[]>> segmentStatusIndexes = Storage.segmentStatusIndexInitialization();
-
     private static final Map<String, Map<String, Double>> priceWithRoute = Storage.priceWithRouteInitialization();
 
     /**
@@ -80,8 +78,9 @@ public class TicketServiceImpl implements TicketService {
     @Override
     public synchronized ReserveResponseDTO reserveTicket(ReserveRequestDTO requestDTO) {
         validateInputs(requestDTO.passengerCount(), requestDTO.origin(), requestDTO.destination());
+        Double totalPrice = getTotalPrice(requestDTO.passengerCount(), requestDTO.origin(), requestDTO.destination());
 
-        if (!requestDTO.priceConfirmation()) {
+        if (!requestDTO.priceConfirmation().equals(totalPrice)) {
             throw new InvalidRequestException("Price confirmation is required to reserve seats");
         }
 
@@ -98,7 +97,6 @@ public class TicketServiceImpl implements TicketService {
             throw new SeatUnavailableException("Not enough seats available for this route.");
         }
 
-        Double totalPrice = getTotalPrice(requestDTO.passengerCount(), requestDTO.origin(), requestDTO.destination());
 
         TripDetailsDTO tripDetails = new TripDetailsDTO(requestDTO.origin(), requestDTO.destination());
         LOGGER.info(String.format("Successfully booked %d seats for %s (Booking ID: %s)", seats.size(), requestDTO.origin() + "->" + requestDTO.destination(), bookedId));
@@ -118,7 +116,14 @@ public class TicketServiceImpl implements TicketService {
         if (destination == null || destination.trim().isEmpty()) {
             throw new InvalidRequestException("Destination is required");
         }
-        if (!segmentStatusIndexes.containsKey(origin) || !segmentStatusIndexes.get(origin).containsKey(destination)) {
+        List<String> segments;
+        try {
+            segments = Storage.generateSegments(origin, destination);
+        } catch (IllegalArgumentException e) {
+            throw new RouteNotFoundException("Invalid route: " + origin + " to " + destination);
+        }
+        
+        if (segments.isEmpty()) {
             throw new RouteNotFoundException("Invalid route: " + origin + " to " + destination);
         }
     }
@@ -127,31 +132,29 @@ public class TicketServiceImpl implements TicketService {
 
         List<Seat> seats = new ArrayList<>();
         int passengerAdded = 0;
-
-        Integer[] segmentIndexes = segmentStatusIndexes.get(origin).get(destination);
+        List<String> segments = Storage.generateSegments(origin, destination);
 
         for (Seat seat : SEATS.values()) {
             if (passengerAdded >= passengerCount) {
                 return seats;
             }
 
-            if (seat.isAvailableForSegments(segmentIndexes)) {
+            if (seat.isAvailableForSegments(segments)) {
                 seats.add(seat);
                 passengerAdded++;
             }
         }
 
-        // return empty if we couldn't fulfill the entire passenger count
+        // return empty list if we can not give all seat to passenger
         return passengerAdded == passengerCount ? seats : Collections.emptyList();
     }
 
     private List<Seat> reserveAvailableSeats(int passengerCount, String origin,
-            String destination, String bookedId) {
+            String destination, String reservationId) {
 
         List<Seat> reservedSeats = new ArrayList<>();
         int passengerAdded = 0;
-
-        Integer[] segmentIndexes = segmentStatusIndexes.get(origin).get(destination);
+        List<String> segments = Storage.generateSegments(origin,destination);
 
         for (Seat seat : SEATS.values()) {
             if (passengerAdded >= passengerCount) {
@@ -159,16 +162,16 @@ public class TicketServiceImpl implements TicketService {
             }
 
             // reserveSegments is atomic thread safe at the Seat level
-            if (seat.reserveSegments(segmentIndexes, bookedId)) {
+            if (seat.reserveSegments(segments, reservationId)) {
                 reservedSeats.add(seat);
                 passengerAdded++;
             }
         }
 
         if (passengerAdded < passengerCount) {
-            // rollback if we failed to acquire all needed seats
+            // rollback if we fail to get all needed seat
             for (Seat seat : reservedSeats) {
-                seat.freeSegments(segmentIndexes);
+                seat.freeSegments(segments);
             }
             return Collections.emptyList();
         }
@@ -192,8 +195,7 @@ public class TicketServiceImpl implements TicketService {
 
     /**
      * Resets all seats to their initial AVAILABLE state.
-     * This method is synchronized to prevent API bookings from
-     * occurring while the system is undergoing maintenance.
+     * occurring while the system is clear for next day.
      */
     @Override
     public synchronized void resetSystem() {

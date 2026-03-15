@@ -1,42 +1,45 @@
 package org.bts.app.storage;
 
 import org.bts.app.model.Seat;
+import org.bts.app.model.SeatSegment;
+import org.bts.app.model.SeatStatus;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Storage class. hold data like station list, seat array and config.
+ */
 public final class Storage {
 
-    public static Map<String, Map<String, Integer[]>> segmentStatusIndexInitialization() {
+    private static final List<String> STATIONS = List.of("A", "B", "C", "D");
 
-        Map<String, Map<String, Integer[]>> segmentIndex = new HashMap<>();
+    // make segment list from origin to dest
+    public static List<String> generateSegments(String origin, String destination) {
 
-        Map<String, Integer[]> fromA = new HashMap<>();
-        fromA.put("B", new Integer[]{0});
-        fromA.put("C", new Integer[]{0, 1});
-        fromA.put("D", new Integer[]{0, 1, 2});
-        segmentIndex.put("A", fromA);
+        List<String> segments = new ArrayList<>();
 
-        Map<String, Integer[]> fromB = new HashMap<>();
-        fromB.put("C", new Integer[]{1});
-        fromB.put("D", new Integer[]{1, 2});
-        fromB.put("A", new Integer[]{5});
-        segmentIndex.put("B", fromB);
+        int startIndex = STATIONS.indexOf(origin);
+        int endIndex = STATIONS.indexOf(destination);
 
-        Map<String, Integer[]> fromC = new HashMap<>();
-        fromC.put("D", new Integer[]{2});
-        fromC.put("B", new Integer[]{4});
-        fromC.put("A", new Integer[]{4, 5});
-        segmentIndex.put("C", fromC);
+        if (startIndex == -1 || endIndex == -1) {
+            throw new IllegalArgumentException("Invalid station");
+        }
 
-        Map<String, Integer[]> fromD = new HashMap<>();
-        fromD.put("C", new Integer[]{3});
-        fromD.put("B", new Integer[]{3, 4});
-        fromD.put("A", new Integer[]{3, 4, 5});
-        segmentIndex.put("D", fromD);
+        if (startIndex < endIndex) {
+            for (int i = startIndex; i < endIndex; i++) {
+                segments.add(STATIONS.get(i) + "-" + STATIONS.get(i + 1));
+            }
+        } else {
+            for (int i = startIndex; i > endIndex; i--) {
+                segments.add(STATIONS.get(i) + "-" + STATIONS.get(i - 1));
+            }
+        }
 
-        return segmentIndex;
+        return segments;
     }
 
     public static  Map<String, Map<String, Double>> priceWithRouteInitialization() {
@@ -63,6 +66,12 @@ public final class Storage {
     public static ConcurrentHashMap<String, Seat> seatsInitialization() {
         ConcurrentHashMap<String, Seat> seats = new ConcurrentHashMap<>();
 
+        List<String> allSegments = new ArrayList<>();
+        for (int i = 0; i < STATIONS.size() - 1; i++) {
+            allSegments.add(STATIONS.get(i) + "-" + STATIONS.get(i + 1));
+            allSegments.add(STATIONS.get(i + 1) + "-" + STATIONS.get(i));
+        }
+
         for (char row = 'A'; row <= 'J'; row++) {
             for (int i = 1; i <= 4; i++) {
                 String seatId = i + "" + row;
@@ -71,7 +80,11 @@ public final class Storage {
                 seat.setSeatId(seatId);
                 seat.setRow(String.valueOf(row));
                 seat.setColumn(i);
-                
+
+                for (String segment : allSegments) {
+                    seat.getSeatSegments().put(segment, new SeatSegment(SeatStatus.AVAILABLE, ""));
+                }
+
                 seats.put(seatId, seat);
             }
         }
