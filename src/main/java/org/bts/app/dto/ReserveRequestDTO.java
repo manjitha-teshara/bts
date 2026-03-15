@@ -14,5 +14,5 @@ public record ReserveRequestDTO(
         String origin,
         String destination,
         int passengerCount,
-        boolean priceConfirmation
+        Double priceConfirmation
 ) {}

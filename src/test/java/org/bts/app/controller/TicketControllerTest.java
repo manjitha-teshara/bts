@@ -89,7 +89,7 @@ class TicketControllerTest {
         ReserveResponseDTO mockResponse = new ReserveResponseDTO("TKT-123", new TripDetailsDTO("A", "B"), Collections.emptyList(), 100.0);
         when(ticketService.reserveTicket(any(ReserveRequestDTO.class))).thenReturn(mockResponse);
 
-        ReserveRequestDTO reqDto = new ReserveRequestDTO("A", "B", 2, true);
+        ReserveRequestDTO reqDto = new ReserveRequestDTO("A", "B", 2, 100.0);
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:" + port + "/api/v1/tickets/reserve"))
                 .header("Content-Type", "application/json")

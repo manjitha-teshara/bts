@@ -78,8 +78,9 @@ public class TicketServiceImpl implements TicketService {
     @Override
     public synchronized ReserveResponseDTO reserveTicket(ReserveRequestDTO requestDTO) {
         validateInputs(requestDTO.passengerCount(), requestDTO.origin(), requestDTO.destination());
+        Double totalPrice = getTotalPrice(requestDTO.passengerCount(), requestDTO.origin(), requestDTO.destination());
 
-        if (!requestDTO.priceConfirmation()) {
+        if (!requestDTO.priceConfirmation().equals(totalPrice)) {
             throw new InvalidRequestException("Price confirmation is required to reserve seats");
         }
 
@@ -96,7 +97,6 @@ public class TicketServiceImpl implements TicketService {
             throw new SeatUnavailableException("Not enough seats available for this route.");
         }
 
-        Double totalPrice = getTotalPrice(requestDTO.passengerCount(), requestDTO.origin(), requestDTO.destination());
 
         TripDetailsDTO tripDetails = new TripDetailsDTO(requestDTO.origin(), requestDTO.destination());
         LOGGER.info(String.format("Successfully booked %d seats for %s (Booking ID: %s)", seats.size(), requestDTO.origin() + "->" + requestDTO.destination(), bookedId));
