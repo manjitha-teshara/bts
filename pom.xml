@@ -58,7 +58,6 @@
                 </configuration>
             </plugin>
             
-            <!-- Maven Assembly Plugin for executable uber-jar -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>

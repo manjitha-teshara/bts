@@ -18,13 +18,8 @@ public class Seat {
     private String row;    // e.g., A, B, C...
     private int column;    // e.g., 1, 2, 3...
 
-//    private final SeatStatus[] segmentStatus = new SeatStatus[6];
-//    private final String[] reservationIds = new String[6];
     Map<String, SeatSegment> seatSegments = new HashMap<>();
 
-    /**
-     * make new seat.
-     */
     public Seat() {
     }
 
