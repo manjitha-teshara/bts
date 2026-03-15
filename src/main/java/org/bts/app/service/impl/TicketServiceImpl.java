@@ -55,6 +55,7 @@ public class TicketServiceImpl implements TicketService {
         if (seats.isEmpty()) {
             seats = Collections.emptyList();
             LOGGER.info(String.format("No availability for %d passengers from %s to %s", passengerCount, origin, destination));
+            throw new SeatUnavailableException(String.format("No availability for %d passengers from %s to %s", passengerCount, origin, destination));
         } else {
             totalPrice = getTotalPrice(passengerCount, origin, destination);
         }
