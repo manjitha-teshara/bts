@@ -8,7 +8,6 @@ import org.bts.app.exception.InvalidRequestException;
 import org.bts.app.exception.RouteNotFoundException;
 import org.bts.app.exception.SeatUnavailableException;
 import org.bts.app.model.Seat;
-import org.bts.app.model.SeatStatus;
 import org.bts.app.service.TicketService;
 import org.bts.app.storage.Storage;
 
@@ -133,14 +132,8 @@ public class TicketServiceImpl implements TicketService {
             if (passengerAdded >= passengerCount) {
                 return seats;
             }
-            boolean seatAvailableForTrip = true;
-            for(String segment: segments) {
-                if (!seat.isAvailableForSegment(segment)) {
-                    seatAvailableForTrip = false;
-                    break;
-                }
-            }
-            if (seatAvailableForTrip) {
+
+            if (seat.isAvailableForSegments(segments)) {
                 seats.add(seat);
                 passengerAdded++;
             }
@@ -161,21 +154,10 @@ public class TicketServiceImpl implements TicketService {
             if (passengerAdded >= passengerCount) {
                 break;
             }
-            boolean seatAvailableForTrip = true;
-            for(String segment : segments) {
-                // reserveSegments is atomic thread safe at the Seat level
-                if (!seat.getSegmentStatus(segment).equals(SeatStatus.AVAILABLE) || !seat.getReservationIds(segment).equals("")) {
-                   seatAvailableForTrip = false;
-                   break;
-                }
-            }
-            if(seatAvailableForTrip) {
-                reservedSeats.add(seat);
-                for(String segment : segments) {
 
-                    seat.setSegmentStatus(segment, SeatStatus.RESERVED);
-                    seat.setReservationId(segment, reservationId);
-                }
+            // reserveSegments is atomic thread safe at the Seat level
+            if (seat.reserveSegments(segments, reservationId)) {
+                reservedSeats.add(seat);
                 passengerAdded++;
             }
         }
@@ -183,9 +165,7 @@ public class TicketServiceImpl implements TicketService {
         if (passengerAdded < passengerCount) {
             // rollback if we failed to acquire all needed seats
             for (Seat seat : reservedSeats) {
-                for(String segment : segments) {
-                    seat.freeSegment(segment);
-                }
+                seat.freeSegments(segments);
             }
             return Collections.emptyList();
         }

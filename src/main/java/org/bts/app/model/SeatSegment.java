@@ -5,7 +5,9 @@ public class SeatSegment {
 
     private String reservationId;
 
-    public SeatSegment(SeatStatus seatStatus, String s) {
+    public SeatSegment(SeatStatus seatStatus, String reservationId) {
+        this.status = seatStatus;
+        this.reservationId = reservationId;
     }
 
     public SeatStatus getStatus() {
