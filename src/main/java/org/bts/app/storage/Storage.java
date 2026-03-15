@@ -1,6 +1,8 @@
 package org.bts.app.storage;
 
 import org.bts.app.model.Seat;
+import org.bts.app.model.SeatSegment;
+import org.bts.app.model.SeatStatus;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -60,6 +62,12 @@ public final class Storage {
     public static ConcurrentHashMap<String, Seat> seatsInitialization() {
         ConcurrentHashMap<String, Seat> seats = new ConcurrentHashMap<>();
 
+        List<String> allSegments = new ArrayList<>();
+        for (int i = 0; i < STATIONS.size() - 1; i++) {
+            allSegments.add(STATIONS.get(i) + "-" + STATIONS.get(i + 1));
+            allSegments.add(STATIONS.get(i + 1) + "-" + STATIONS.get(i));
+        }
+
         for (char row = 'A'; row <= 'J'; row++) {
             for (int i = 1; i <= 4; i++) {
                 String seatId = i + "" + row;
@@ -68,7 +76,11 @@ public final class Storage {
                 seat.setSeatId(seatId);
                 seat.setRow(String.valueOf(row));
                 seat.setColumn(i);
-                seat.reset();
+
+                for (String segment : allSegments) {
+                    seat.getSeatSegments().put(segment, new SeatSegment(SeatStatus.AVAILABLE, ""));
+                }
+
                 seats.put(seatId, seat);
             }
         }

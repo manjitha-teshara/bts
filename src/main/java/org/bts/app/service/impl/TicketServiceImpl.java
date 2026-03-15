@@ -189,8 +189,7 @@ public class TicketServiceImpl implements TicketService {
 
     /**
      * Resets all seats to their initial AVAILABLE state.
-     * This method is synchronized to prevent API bookings from
-     * occurring while the system is undergoing maintenance.
+     * occurring while the system is clear for next day.
      */
     @Override
     public synchronized void resetSystem() {
