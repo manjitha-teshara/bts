@@ -271,4 +271,3 @@ curl -X POST http://localhost:8080/api/v1/trips/tickets \
 # Author
 
 Manjitha Teshara
-Software Engineer
