@@ -17,12 +17,12 @@ class TicketServiceImplTest {
     @BeforeEach
     void setUp() {
         ticketService = new TicketServiceImpl();
-        ticketService.resetSystem(); // Ensure clean state before each test
+        ticketService.resetSystem();
     }
 
     @AfterEach
     void tearDown() {
-        ticketService.resetSystem(); // Clean up after tests
+        ticketService.resetSystem();
     }
 
     @Test
@@ -52,8 +52,7 @@ class TicketServiceImplTest {
     }
 
     @Test
-    void checkAvailability_thereIsNoAvailableSeatInBetweenGivenRange_returnsEmptyList() {
-        // Total seats are 40. We book all 40 from B to C.
+    void checkAvailability_thereIsNoAvailableSeatInBetweenGivenRange_throwsException() {
         for (int i = 0; i < 40; i++) {
             // Bypass checkAvailability and directly reserve to simulate a full bus
             ticketService.reserveTicket(new org.bts.app.dto.ReserveRequestDTO(
@@ -61,12 +60,12 @@ class TicketServiceImplTest {
             ));
         }
 
-        // Attempt to find availability overlapping the B-C segment
-        AvailabilityResponseDTO response = ticketService.checkAvailability(1, "A", "D");
-
-        assertNotNull(response);
-        assertTrue(response.availableSeats().isEmpty());
-        assertEquals(0.0, response.totalPrice());
+        SeatUnavailableException exception = assertThrows(
+                SeatUnavailableException.class,
+                () -> ticketService.checkAvailability(1, "A", "D")
+        );
+        
+        assertEquals("No availability for 1 passengers from A to D", exception.getMessage());
     }
 
     @Test
@@ -142,7 +141,7 @@ class TicketServiceImplTest {
             ticketService.reserveTicket(new org.bts.app.dto.ReserveRequestDTO("A", "C", 1, 100.0));
         }
 
-        // Try to book one more
+        // try to book one more
         org.bts.app.dto.ReserveRequestDTO request = new org.bts.app.dto.ReserveRequestDTO("A", "C", 1, 100.0);
 
         SeatUnavailableException exception = assertThrows(
@@ -157,10 +156,11 @@ class TicketServiceImplTest {
     @Test
     void resetSystem_clearsAllReservations() {
         ticketService.reserveTicket(new org.bts.app.dto.ReserveRequestDTO("A", "B", 1, 50.0));
-        
-        // Ensure availability is reduced (40 total - 1 booked = 39)
-        AvailabilityResponseDTO beforeReset = ticketService.checkAvailability(40, "A", "B");
-        assertTrue(beforeReset.availableSeats().isEmpty());
+        // ensure availability is reduced (40 total - 1 booked = 39)
+        assertThrows(
+                SeatUnavailableException.class,
+                () -> ticketService.checkAvailability(40, "A", "B")
+        );
 
         ticketService.resetSystem();
 
