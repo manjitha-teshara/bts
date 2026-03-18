@@ -68,7 +68,7 @@ You can test APIs using:
 ## Endpoint
 
 ```
-GET /api/v1/trips/availability
+GET /api/v1/tickets/availability
 ```
 
 ## Purpose
