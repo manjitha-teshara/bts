@@ -80,13 +80,13 @@ Check seat availability and calculate the total price for a trip between a speci
 ## Example Request
 
 ```
-http://localhost:8080/api/v1/trips/availability?origin=A&destination=D&passengerCount=3
+http://localhost:8080/api/v1/tickets/availability?origin=A&destination=D&passengerCount=3
 ```
 
 Example using curl:
 
 ```bash
-curl "http://localhost:8080/api/v1/trips/availability?origin=A&destination=D&passengerCount=3"
+curl "http://localhost:8080/api/v1/tickets/availability?origin=A&destination=D&passengerCount=3"
 ```
 
 ---
@@ -157,7 +157,7 @@ curl "http://localhost:8080/api/v1/trips/availability?origin=A&destination=D&pas
 ## Endpoint
 
 ```
-POST /api/v1/trips/tickets
+POST /api/v1/tickets/reserve
 ```
 
 ---
@@ -199,7 +199,7 @@ If the price **does not match**, the reservation is rejected.
 ## Example Request
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/trips/tickets \
+curl -X POST http://localhost:8080/api/v1/tickets/reserve \
 -H "Content-Type: application/json" \
 -d '{
   "origin": "A",
